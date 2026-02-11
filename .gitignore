@@ -1,0 +1,9 @@
+﻿################################################################################
+# Este archivo .gitignore ha sido creado automáticamente por Microsoft(R) Visual Studio.
+################################################################################
+
+/Errepar.MetadataManager.Process/bin/Debug
+/Errepar.MetadataManager.Process/obj
+/.vs/Errepar.MetadataManager.Process/v17
+/Errepar.MetadataManager.Process/.vs
+/.vs
