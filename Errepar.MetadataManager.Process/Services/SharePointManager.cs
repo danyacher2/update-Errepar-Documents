@@ -38,7 +38,7 @@ namespace Errepar.MetadataManager.Process.Services
             // Endpoint REST; se usa odata v4 ($select + $expand).
             // Ajustar internal names si los tuyos difieren (p. ej. Estado_x0020_Proceso).
             var endpoint = $"{_siteUrl}/_api/web/lists/getbytitle('{_listTitle}')/items" +
-                           "?$select=Id,Title,Cambios,Cant_x0020_Activos_x0020_Procesados,Cant_x0020_Activos_x0020_Seleccionados,Created,Author/Title,Editor/Title,EstadoProceso,FechaFinalizado,FechaPendiente,Link,Modified" +
+                           "?$select=Id,Title,Cambios,CantActivosProcesados,CantActivosSeleccionados,Created,Author/Title,Editor/Title,EstadoProceso,FechaFinalizado,FechaPendiente,LinkMetadataManger,Modified" +
                            "&$expand=Author,Editor" +
                            "&$filter=(EstadoProceso eq 'Pendiente') or (EstadoProceso eq 'En Pausa')";
 
@@ -78,15 +78,15 @@ namespace Errepar.MetadataManager.Process.Services
                 it.Id = TryGetInt(el, "Id") ?? 0;
                 it.Titulo = TryGetString(el, "Title", "Titulo");
                 it.Cambios = TryGetString(el, "Cambios");
-                it.CantActivosProcesados = TryGetInt(el, "Cant_x0020_Activos_x0020_Procesados", "CantActivosProcesados");
-                it.CantActivosSeleccionados = TryGetInt(el, "Cant_x0020_Activos_x0020_Seleccionados", "CantActivosSeleccionados");
+                it.CantActivosProcesados = TryGetInt(el, "CantActivosProcesados", "Cant Activos Procesados");
+                it.CantActivosSeleccionados = TryGetInt(el, "CantActivosSeleccionados", "Cant Activos Seleccionados");
                 it.Creado = TryGetDateTime(el, "Created", "Creado");
                 it.Modificado = TryGetDateTime(el, "Modified", "Modificado");
-                it.FechaFinalizado = TryGetDateTime(el, "FechaFinalizado");
-                it.FechaPendiente = TryGetDateTime(el, "FechaPendiente");
-                it.Link = TryGetLink(el, "Link");
-                it.EstadoProceso = TryGetString(el, "EstadoProceso", "Estado_x0020_Proceso");
-                it.EjecutadoPor = TryGetNestedUser(el, "ExecutedBy", "EjecutadoPor"); // fallback
+                it.FechaFinalizado = TryGetDateTime(el, "FechaFinalizado", "Fecha Finalizado");
+                it.FechaPendiente = TryGetDateTime(el, "FechaPendiente", "Fecha Pendiente");
+                it.Link = TryGetLink(el, "LinkMetadataManger");
+                it.EstadoProceso = TryGetString(el, "EstadoProceso", "Estado Proceso");
+                it.EjecutadoPor = TryGetNestedUser(el, "EjecutadoPor", "Ejecutado Por"); // fallback
                 it.CreadoPor = TryGetNestedUser(el, "Author", "CreatedBy");
                 it.ModificadoPor = TryGetNestedUser(el, "Editor", "ModifiedBy");
 

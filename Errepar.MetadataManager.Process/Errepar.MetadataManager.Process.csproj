@@ -8,7 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.82.1" />
     <PackageReference Include="Microsoft.SharePointOnline.CSOM" Version="16.1.26914.12004" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.SharePoint.Client">
+      <HintPath>Lib\Microsoft.SharePoint.Client.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
