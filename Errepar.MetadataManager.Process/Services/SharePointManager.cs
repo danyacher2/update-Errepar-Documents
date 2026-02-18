@@ -95,11 +95,168 @@ namespace Errepar.MetadataManager.Process.Services
                 it.ModificadoPor = TryGetNestedUser(el, "Editor", "ModifiedBy");
                 it.Scope = TryGetNestedUser(el, "Scope", "Scope");
                 it.Adjuntos = TryGetAttachments(el, "AttachmentFiles");
+                it.Activos = (await TryGetActivosAsync(_http, _siteUrl, _listTitle, it.Id, it.Adjuntos, cancellationToken)).ToList();
 
                 items.Add(it);
             }
 
             return items;
+        }
+
+        /// <summary>
+        /// Busca y descarga el contenido del archivo "Activos" de los adjuntos.
+        /// Parsea el contenido y lo devuelve como array de strings.
+        /// </summary>
+        private async Task<string[]> TryGetActivosAsync(HttpClient http, string siteUrl, string listTitle, int itemId, string datosAdjuntos, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrEmpty(datosAdjuntos))
+                return Array.Empty<string>();
+
+            // Buscar archivo que contenga "Activos" en su nombre (case-insensitive)
+            var urls = datosAdjuntos.Split(';', StringSplitOptions.RemoveEmptyEntries);
+            string archivoActivosUrl = null;
+            string fileName = null;
+
+            foreach (var url in urls)
+            {
+                fileName = System.IO.Path.GetFileName(url);
+                if (fileName.Contains("Activos", StringComparison.OrdinalIgnoreCase))
+                {
+                    archivoActivosUrl = url;
+                    break;
+                }
+            }
+
+            if (string.IsNullOrEmpty(archivoActivosUrl))
+            {
+                Console.WriteLine($"⚠️ No se encontró archivo 'Activos' en item {itemId}");
+                return Array.Empty<string>();
+            }
+
+            try
+            {
+                var serverRelativeUrl = archivoActivosUrl; // ya lo tenés
+                var downloadEndpoint = $"{siteUrl}/_api/web/GetFileByServerRelativeUrl('{serverRelativeUrl}')/$value";
+
+                using var resp = await http.GetAsync(downloadEndpoint, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+                if (!resp.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"❌ Error al descargar archivo: Status {resp.StatusCode}");
+                    return Array.Empty<string>();
+                }
+
+                var contenido = await resp.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);               
+
+                // Convertir bytes a texto
+                var texto = System.Text.Encoding.UTF8.GetString(contenido);
+                using var doc = JsonDocument.Parse(texto);
+
+                var root = doc.RootElement;
+
+                if (!root.TryGetProperty("documents", out var documentsElement))
+                {
+                    Console.WriteLine("❌ El JSON no tiene la propiedad 'Documents'");
+                    return Array.Empty<string>();
+                }
+
+                if (documentsElement.ValueKind != JsonValueKind.Array)
+                {
+                    Console.WriteLine("❌ 'Documents' no es un array");
+                    return Array.Empty<string>();
+                }
+
+                var activos = new List<string>();
+
+                foreach (var item in documentsElement.EnumerateArray())
+                {
+                    // ejemplo: { "id": "...", "nombre": "..." }
+                    if (item.TryGetProperty("id", out var idProp))
+                        activos.Add(idProp.GetString());
+                    else if (item.TryGetProperty("nombre", out var nombreProp))
+                        activos.Add(nombreProp.GetString());
+                }
+
+                return activos.ToArray();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error al obtener activos del item {itemId}: {ex.Message}");
+                Console.WriteLine(ex);
+                return Array.Empty<string>();
+            }
+        }
+
+        /// <summary>
+        /// Parsea contenido de texto plano (una línea por activo)
+        /// </summary>
+        private static Array ParseTextActivos(string texto)
+        {
+            var lineas = texto.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var activos = lineas.Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
+            Console.WriteLine($"✅ {activos.Length} activos encontrados (texto)");
+            return activos;
+        }
+
+        /// <summary>
+        /// Parsea contenido JSON (espera un array de strings o array de objetos con propiedad "nombre" o "id")
+        /// </summary>
+        private static Array ParseJsonActivos(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                // Si es un array directo
+                if (root.ValueKind == JsonValueKind.Array)
+                {
+                    var activos = new List<string>();
+                    foreach (var elemento in root.EnumerateArray())
+                    {
+                        if (elemento.ValueKind == JsonValueKind.String)
+                        {
+                            // Array de strings: ["activo1", "activo2"]
+                            activos.Add(elemento.GetString());
+                        }
+                        else if (elemento.ValueKind == JsonValueKind.Object)
+                        {
+                            // Array de objetos: [{"id": "123", "nombre": "activo1"}]
+                            var valor = TryGetString(elemento, "id", "nombre", "codigo", "activo");
+                            if (!string.IsNullOrEmpty(valor))
+                                activos.Add(valor);
+                        }
+                    }
+                    Console.WriteLine($"✅ {activos.Count} activos encontrados (JSON array)");
+                    return activos.ToArray();
+                }
+                // Si tiene una propiedad "activos" con el array
+                else if (root.TryGetProperty("activos", out var activosArray) && activosArray.ValueKind == JsonValueKind.Array)
+                {
+                    var activos = new List<string>();
+                    foreach (var elemento in activosArray.EnumerateArray())
+                    {
+                        if (elemento.ValueKind == JsonValueKind.String)
+                            activos.Add(elemento.GetString());
+                        else if (elemento.ValueKind == JsonValueKind.Object)
+                        {
+                            var valor = TryGetString(elemento, "id", "nombre", "codigo", "activo");
+                            if (!string.IsNullOrEmpty(valor))
+                                activos.Add(valor);
+                        }
+                    }
+                    Console.WriteLine($"✅ {activos.Count} activos encontrados (JSON objeto)");
+                    return activos.ToArray();
+                }
+
+                Console.WriteLine("⚠️ Formato JSON no reconocido, retornando array vacío");
+                return Array.Empty<string>();
+            }
+            catch (JsonException ex)
+            {
+                Console.WriteLine($"❌ Error al parsear JSON: {ex.Message}");
+                return Array.Empty<string>();
+            }
         }
 
         // ----- Helpers de parseo JSON -----

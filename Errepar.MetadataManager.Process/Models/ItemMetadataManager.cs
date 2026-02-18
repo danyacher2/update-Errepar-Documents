@@ -22,5 +22,6 @@ namespace Errepar.MetadataManager.Process.Models
         public string ModificadoPor { get; set; }     // Editor (nombre)
         public string Scope { get; set; }     // Editor (nombre)
         public string Adjuntos{ get; set; }
+        public List<string> Activos { get; set; }
     }
 }
