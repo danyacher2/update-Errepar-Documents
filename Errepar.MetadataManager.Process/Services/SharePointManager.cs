@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -16,7 +16,7 @@ namespace Errepar.MetadataManager.Process.Services
         private readonly string _listTitle;
 
         // Construir con HttpClient (puede inyectarse) y la url de sitio SharePoint.
-        // authToken: bearer token si usas OAuth. Si usas otro m�todo, ajusta la cabecera/autenticaci�n.
+        // authToken: bearer token si usas OAuth. Si usas otro método, ajusta la cabecera/autenticación.
         public SharePointManager(HttpClient httpClient, string siteUrl, string listTitle = "MetadataManager", string authToken = null)
         {
             _http = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
@@ -38,14 +38,17 @@ namespace Errepar.MetadataManager.Process.Services
             // Endpoint REST; se usa odata v4 ($select + $expand).
             // Ajustar internal names si los tuyos difieren (p. ej. Estado_x0020_Proceso).
             var endpoint = $"{_siteUrl}/_api/web/lists/getbytitle('{_listTitle}')/items" +
-                           "?$select=Id,Title,Cambios,CantActivosProcesados,CantActivosSeleccionados,Created,Author/Title,Editor/Title,EstadoProceso,FechaFinalizado,FechaPendiente,LinkMetadataManger,Modified" +
-                           "&$expand=Author,Editor" +
-                           "&$filter=(EstadoProceso eq 'Pendiente') or (EstadoProceso eq 'En Pausa')";
+                "?$select=Id,Title,Cambios,CantActivosProcesados,Scope,CantActivosSeleccionados,Created," +
+                "Author/Title,Editor/Title,EstadoProceso,FechaFinalizado,FechaPendiente,LinkMetadataManager," +
+                "Modified,EjecutadoPor/Title,EjecutadoPor/Id,AttachmentFiles/ServerRelativeUrl" +
+                "&$expand=Author,Editor,AttachmentFiles,EjecutadoPor" +
+                "&$filter=(EstadoProceso eq 'Pendiente') or (EstadoProceso eq 'En Pausa')";
+            ;
+             using var resp = await _http.GetAsync(endpoint, cancellationToken).ConfigureAwait(false);
+             resp.EnsureSuccessStatusCode();
 
-            using var resp = await _http.GetAsync(endpoint, cancellationToken).ConfigureAwait(false);
-            resp.EnsureSuccessStatusCode();
+             var json = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
-            var json = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             using var doc = JsonDocument.Parse(json);
 
             // Manejo flexible: SharePoint puede devolver { "value": [...] } o { "d": { "results": [...] } }
@@ -76,19 +79,22 @@ namespace Errepar.MetadataManager.Process.Services
                 var it = new ItemMetadataManager();
 
                 it.Id = TryGetInt(el, "Id") ?? 0;
-                it.Titulo = TryGetString(el, "Title", "Titulo");
                 it.Cambios = TryGetString(el, "Cambios");
+
                 it.CantActivosProcesados = TryGetInt(el, "CantActivosProcesados", "Cant Activos Procesados");
                 it.CantActivosSeleccionados = TryGetInt(el, "CantActivosSeleccionados", "Cant Activos Seleccionados");
                 it.Creado = TryGetDateTime(el, "Created", "Creado");
-                it.Modificado = TryGetDateTime(el, "Modified", "Modificado");
+                it.EjecutadoPor = TryGetNestedUser(el, "EjecutadoPor", "Ejecutado Por"); // fallback
+                it.EstadoProceso = TryGetString(el, "EstadoProceso", "Estado Proceso");
                 it.FechaFinalizado = TryGetDateTime(el, "FechaFinalizado", "Fecha Finalizado");
                 it.FechaPendiente = TryGetDateTime(el, "FechaPendiente", "Fecha Pendiente");
-                it.Link = TryGetLink(el, "LinkMetadataManger");
-                it.EstadoProceso = TryGetString(el, "EstadoProceso", "Estado Proceso");
-                it.EjecutadoPor = TryGetNestedUser(el, "EjecutadoPor", "Ejecutado Por"); // fallback
+                it.Link = TryGetLink(el, "LinkMetadataManager");
+                it.Modificado = TryGetDateTime(el, "Modified", "Modificado");
+                it.Titulo = TryGetString(el, "Title", "Titulo");
                 it.CreadoPor = TryGetNestedUser(el, "Author", "CreatedBy");
                 it.ModificadoPor = TryGetNestedUser(el, "Editor", "ModifiedBy");
+                it.Scope = TryGetNestedUser(el, "Scope", "Scope");
+                it.Adjuntos = TryGetAttachments(el, "AttachmentFiles");
 
                 items.Add(it);
             }
@@ -167,6 +173,151 @@ namespace Errepar.MetadataManager.Process.Services
                 }
             }
             return null;
+        }
+
+        private static string TryGetAttachments(JsonElement el, string name)
+        {
+            if (!el.TryGetProperty(name, out var attachmentsProperty))
+                return null;
+
+            // AttachmentFiles puede venir como objeto con "results" o directamente como array
+            JsonElement attachmentsArray;
+            if (attachmentsProperty.ValueKind == JsonValueKind.Object &&
+                attachmentsProperty.TryGetProperty("results", out attachmentsArray))
+            {
+                // ok
+            }
+            else if (attachmentsProperty.ValueKind == JsonValueKind.Array)
+            {
+                attachmentsArray = attachmentsProperty;
+            }
+            else
+            {
+                return null;
+            }
+
+            var urls = new List<string>();
+            foreach (var attachment in attachmentsArray.EnumerateArray())
+            {
+                // Los adjuntos tienen propiedades como ServerRelativeUrl o FileName
+                if (attachment.TryGetProperty("ServerRelativeUrl", out var urlProp) &&
+                    urlProp.ValueKind == JsonValueKind.String)
+                {
+                    urls.Add(urlProp.GetString());
+                }
+            }
+
+            return urls.Count > 0 ? string.Join(";", urls) : null;
+        }
+
+        public async Task<string> AddAttachmentAsync(int itemId, string fileName, byte[] fileContent, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+                throw new ArgumentException("El nombre del archivo no puede estar vacío", nameof(fileName));
+            if (fileContent == null || fileContent.Length == 0)
+                throw new ArgumentException("El contenido del archivo no puede estar vacío", nameof(fileContent));
+
+            // Endpoint para agregar adjunto
+            var endpoint = $"{_siteUrl}/_api/web/lists/getbytitle('{_listTitle}')/items({itemId})/AttachmentFiles/add(FileName='{Uri.EscapeDataString(fileName)}')";
+
+            using var content = new ByteArrayContent(fileContent);
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+            using var resp = await _http.PostAsync(endpoint, content, cancellationToken).ConfigureAwait(false);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var errorContent = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                throw new HttpRequestException(
+                    $"Error al agregar adjunto a SharePoint.\n" +
+                    $"Status: {resp.StatusCode} ({(int)resp.StatusCode})\n" +
+                    $"ItemId: {itemId}, FileName: {fileName}\n" +
+                    $"Response: {errorContent}");
+            }
+
+            resp.EnsureSuccessStatusCode();
+
+            var json = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(json);
+
+            if (doc.RootElement.TryGetProperty("d", out var d) && 
+                d.TryGetProperty("ServerRelativeUrl", out var url))
+            {
+                return url.GetString();
+            }
+            else if (doc.RootElement.TryGetProperty("ServerRelativeUrl", out url))
+            {
+                return url.GetString();
+            }
+
+            return null;
+        }
+        public async Task<List<string>> AddAttachmentsAsync(int itemId, Dictionary<string, byte[]> attachments, CancellationToken cancellationToken = default)
+        {
+            if (attachments == null || attachments.Count == 0)
+                throw new ArgumentException("Debe proporcionar al menos un adjunto", nameof(attachments));
+
+            var uploadedUrls = new List<string>();
+
+            foreach (var attachment in attachments)
+            {
+                try
+                {
+                    var url = await AddAttachmentAsync(itemId, attachment.Key, attachment.Value, cancellationToken).ConfigureAwait(false);
+                    if (!string.IsNullOrEmpty(url))
+                    {
+                        uploadedUrls.Add(url);
+                        Console.WriteLine($"✓ Adjunto agregado: {attachment.Key} -> {url}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"✗ Error al agregar adjunto '{attachment.Key}': {ex.Message}");
+                    // Continuar con los siguientes archivos
+                }
+            }
+
+            return uploadedUrls;
+        }
+
+     
+        public async Task<List<string>> GetAttachmentsAsync(int itemId, CancellationToken cancellationToken = default)
+        {
+            var endpoint = $"{_siteUrl}/_api/web/lists/getbytitle('{_listTitle}')/items({itemId})/AttachmentFiles";
+
+            using var resp = await _http.GetAsync(endpoint, cancellationToken).ConfigureAwait(false);
+            resp.EnsureSuccessStatusCode();
+
+            var json = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(json);
+
+            var urls = new List<string>();
+            JsonElement arrayElement;
+
+            if (doc.RootElement.TryGetProperty("d", out var d) && 
+                d.TryGetProperty("results", out arrayElement))
+            {
+                // ok
+            }
+            else if (doc.RootElement.TryGetProperty("value", out arrayElement))
+            {
+                // ok
+            }
+            else
+            {
+                return urls;
+            }
+
+            foreach (var attachment in arrayElement.EnumerateArray())
+            {
+                if (attachment.TryGetProperty("ServerRelativeUrl", out var urlProp) && 
+                    urlProp.ValueKind == JsonValueKind.String)
+                {
+                    urls.Add(urlProp.GetString());
+                }
+            }
+
+            return urls;
         }
     }
 }
