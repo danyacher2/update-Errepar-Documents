@@ -1,6 +1,7 @@
 ﻿using Errepar.MetadataManager.Process.Auth;
 using Errepar.MetadataManager.Process.Services;
 using Microsoft.SharePoint.Client;
+using Microsoft.SharePoint.News.DataModel;
 using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -8,6 +9,9 @@ using System.Security;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using static System.Net.WebRequestMethods;
+using Errepar.MetadataManager.Process.Services;
+
 
 try
 {
@@ -25,9 +29,11 @@ try
     // Generar token con certificado (thumbprint)
     var authToken = await TokenProvider.GetSharePointTokenWithCertificateThumbprintAsync(
         tenantId, clientId, certificateThumbprint, siteUrl);
-
     using var http = new HttpClient();
-    http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+
+    var logsManager = new LogsManager(http, siteUrl, "Metadata Manager");
+
+   http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
 
     var sp = new SharePointManager(http, siteUrl, "Metadata Manager", authToken);
     using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
@@ -38,8 +44,24 @@ try
     foreach (var it in items)
     {
         Console.WriteLine($"Id={it.Id} | Título='{it.Titulo}' | Estado='{it.EstadoProceso}' | EjecutadoPor='{it.EjecutadoPor}' | Link='{it.Link}'");
+        logsManager.SaveLogEjecucion(new ItemLogEjecucion
+        {
+            ItemId = it.Id,
+            Fecha = DateTime.Now,
+            Mensaje = "Inicio proceso",
+            Estado = "OK"
+        });
+
+        logsManager.SaveLogActivosProcesados(new ItemLogActivosProcesados
+        {
+            ItemId = it.Id,
+            Activo = it.Activos[0],
+            Procesado = true,
+            Fecha = DateTime.Now
+        });
+    await logsManager.SyncLogs(it.Id,  cts.Token);
+
     }
-    
 }
 catch (Exception ex)
 {
@@ -48,6 +70,7 @@ catch (Exception ex)
 }
 finally
 {
+    
     Console.WriteLine("Proceso finalizado con código " + Environment.ExitCode + ". Presiona una tecla para cerrar...");
     Console.ReadKey();
 }
