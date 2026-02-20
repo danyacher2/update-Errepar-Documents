@@ -1,6 +1,9 @@
 ﻿using Errepar.MetadataManager.Process.Auth;
+using Errepar.MetadataManager.Process.Models;
+using Errepar.MetadataManager.Process.Services;
 using Errepar.MetadataManager.Process.Services;
 using Microsoft.SharePoint.Client;
+using Microsoft.SharePoint.Client.Search.Query;
 using Microsoft.SharePoint.News.DataModel;
 using System;
 using System.Net.Http;
@@ -10,7 +13,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using static System.Net.WebRequestMethods;
-using Errepar.MetadataManager.Process.Services;
+using Microsoft.SharePoint.Client;
 
 
 try
@@ -31,9 +34,21 @@ try
         tenantId, clientId, certificateThumbprint, siteUrl);
     using var http = new HttpClient();
 
+
+
+    var context = new ClientContext(siteUrl);
+
+    context.ExecutingWebRequest += (sender, e) =>
+    {
+        e.WebRequestExecutor.RequestHeaders["Authorization"] = "Bearer " + authToken;
+    };
+
     var logsManager = new LogsManager(http, siteUrl, "Metadata Manager");
 
-   http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+    var searchService = new SearchService(context);
+
+
+    http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
 
     var sp = new SharePointManager(http, siteUrl, "Metadata Manager", authToken);
     using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
@@ -46,6 +61,19 @@ try
         Console.WriteLine($"Id={it.Id} | Título='{it.Titulo}' | Estado='{it.EstadoProceso}' | EjecutadoPor='{it.EjecutadoPor}' | Link='{it.Link}'");
         foreach (var activo in it.Activos)
         {
+
+
+            var hit = searchService.ObtenerElementoPorGuid(activo);
+
+            if (hit != null)
+            {
+                Console.WriteLine("Path encontrado: " + hit.Path);
+            }
+            else
+            {
+                Console.WriteLine("No se encontró el elemento");
+            }
+
             await logsManager.SaveLogEjecucion(it.Id, new ItemLogEjecucion
             {
                 ItemId = it.Id,
@@ -98,6 +126,7 @@ finally
     securePassword.MakeReadOnly();
     return securePassword;
 }
+
 
 /*
 // Helpers
