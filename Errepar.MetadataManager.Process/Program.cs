@@ -44,22 +44,29 @@ try
     foreach (var it in items)
     {
         Console.WriteLine($"Id={it.Id} | Título='{it.Titulo}' | Estado='{it.EstadoProceso}' | EjecutadoPor='{it.EjecutadoPor}' | Link='{it.Link}'");
-        logsManager.SaveLogEjecucion(new ItemLogEjecucion
+        foreach (var activo in it.Activos)
         {
-            ItemId = it.Id,
-            Fecha = DateTime.Now,
-            Mensaje = "Inicio proceso",
-            Estado = "OK"
-        });
+            await logsManager.SaveLogEjecucion(it.Id, new ItemLogEjecucion
+            {
+                ItemId = it.Id,
+                Fecha = DateTime.Now,
+                Mensaje = "Inicio proceso",
+                Estado = "OK"
+            });
 
-        logsManager.SaveLogActivosProcesados(new ItemLogActivosProcesados
-        {
-            ItemId = it.Id,
-            Activo = it.Activos[0],
-            Procesado = true,
-            Fecha = DateTime.Now
-        });
-    await logsManager.SyncLogs(it.Id,  cts.Token);
+            var logActivo = new ItemLogActivosProcesados
+            {
+                ItemId = it.Id,
+                Activo = activo,
+                Procesado = true,
+                Fecha = DateTime.Now
+            };
+
+            await logsManager.SaveLogActivosProcesados(it.Id, new[] { logActivo });
+        }
+
+
+        await logsManager.SyncLogs(it.Id,  cts.Token);
 
     }
 }

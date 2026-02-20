@@ -47,39 +47,83 @@ namespace Errepar.MetadataManager.Process.Services
         private readonly List<ItemLogEjecucion> _logEjecucionMemoria = new();
         private readonly List<ItemLogActivosProcesados> _logActivosMemoria = new();
 
-        public async Task SaveLogEjecucion(ItemLogEjecucion item)
-        {
-            _logEjecucionMemoria.Add(item);
+        private readonly string _baseLogsPath =
+    Path.Combine(
+         AppContext.BaseDirectory,
+    "Logs"
+    );
 
-            var json = JsonSerializer.Serialize(item) + Environment.NewLine;
-            await File.AppendAllTextAsync("logs/LogEjecucion.ndjson", json);
+        private string GetItemFolder(int itemId)
+        {
+            var path = Path.Combine(_baseLogsPath, $"Item_{itemId}");
+            Directory.CreateDirectory(path);
+            return path;
+        }
+
+        public async Task SaveLogEjecucion(int itemId, ItemLogEjecucion log)
+        {
+            var folder = GetItemFolder(itemId);
+            var file = Path.Combine(folder, "LogEjecucion.json");
+
+            var logs = new List<ItemLogEjecucion>();
+
+            if (File.Exists(file))
+            {
+                var json = await File.ReadAllTextAsync(file);
+                logs = JsonSerializer.Deserialize<List<ItemLogEjecucion>>(json) ?? new();
+            }
+
+            logs.Add(log);
+
+            var newJson = JsonSerializer.Serialize(logs, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(file, newJson);
         }
 
 
-        public async Task SaveLogActivosProcesados(ItemLogActivosProcesados item)
-        {
-            _logActivosMemoria.Add(item);
+        //public async Task SaveLogEjecucion(ItemLogEjecucion item)
+        //{
+        //    _logEjecucionMemoria.Add(item);
 
-            var json = JsonSerializer.Serialize(item) + Environment.NewLine;
-            await File.AppendAllTextAsync("logs/ActivosProcesados.ndjson", json);
+        //    var json = JsonSerializer.Serialize(item) + Environment.NewLine;
+        //    await File.AppendAllTextAsync("logs/LogEjecucion.ndjson", json);
+        //}
+
+        public async Task SaveLogActivosProcesados(int itemId, IEnumerable<ItemLogActivosProcesados> activos)
+        {
+            var folder = GetItemFolder(itemId);
+            var file = Path.Combine(folder, "ActivosProcesados.json");
+
+            var logs = new List<ItemLogActivosProcesados>();
+
+            if (File.Exists(file))
+            {
+                var json = await File.ReadAllTextAsync(file);
+                logs = JsonSerializer.Deserialize<List<ItemLogActivosProcesados>>(json) ?? new();
+            }
+
+            foreach (var activo in activos)
+                logs.Add(activo);
+
+            var newJson = JsonSerializer.Serialize(logs, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(file, newJson);
         }
 
-
-
-        public async Task SyncLogs( int itemId, CancellationToken ct)
+        public async Task SyncLogs(int itemId, CancellationToken ct)
         {
-            // Logs en memoria
+            var folder = GetItemFolder(itemId);
+
+            var ejecucionPath = Path.Combine(folder, "LogEjecucion.json");
+            var activosPath = Path.Combine(folder, "ActivosProcesados.json");
+
             var ejecucionJson = JsonSerializer.Serialize(_logEjecucionMemoria, new JsonSerializerOptions { WriteIndented = true });
             var activosJson = JsonSerializer.Serialize(_logActivosMemoria, new JsonSerializerOptions { WriteIndented = true });
-
-            // Guardar en disco
             await SaveJsonLogToDisk(ejecucionJson, "LogEjecucion.json");
             await SaveJsonLogToDisk(activosJson, "ActivosProcesados.json");
 
-            // Subir como adjuntos
-            await SaveJsonLogAsAttachment(_http, _siteUrl, _listTitle, itemId, "LogEjecucion.json", ejecucionJson, ct);
-            await SaveJsonLogAsAttachment(_http, _siteUrl, _listTitle, itemId, "ActivosProcesados.json", activosJson, ct);
+            await SaveJsonLogAsAttachment(_http, _siteUrl, _listTitle, itemId, "LogEjecucion.json", ejecucionPath, ct);
+            await SaveJsonLogAsAttachment(_http, _siteUrl, _listTitle, itemId, "ActivosProcesados.json", activosPath, ct);
         }
+        
 
         private async Task SaveJsonLogToDisk(string json, string logName)
         {
@@ -92,18 +136,18 @@ namespace Errepar.MetadataManager.Process.Services
             await File.WriteAllTextAsync(path, json, Encoding.UTF8);
         }
 
-        private async Task SaveJsonLogAsAttachment(
-            HttpClient http,
-            string siteUrl,
-            string listTitle,
-            int itemId,
-            string fileName,
-            string json,
-            CancellationToken ct)
-        {
-            var bytes = Encoding.UTF8.GetBytes(json);
 
-            // 1) Obtener adjuntos actuales
+        private async Task SaveJsonLogAsAttachment(
+    HttpClient http,
+    string siteUrl,
+    string listTitle,
+    int itemId,
+    string fileName,
+    string filePath,
+    CancellationToken ct)
+        {
+            var bytes = await File.ReadAllBytesAsync(filePath, ct);
+
             var getAttachmentsUrl =
                 $"{siteUrl}/_api/web/lists/getbytitle('{listTitle}')/items({itemId})/AttachmentFiles";
 
@@ -132,7 +176,6 @@ namespace Errepar.MetadataManager.Process.Services
                 }
             }
 
-            // 2) Si existe → borrar
             if (exists)
             {
                 var deleteUrl =
@@ -150,7 +193,6 @@ namespace Errepar.MetadataManager.Process.Services
                 }
             }
 
-            // 3) Subir adjunto
             var uploadUrl =
                 $"{siteUrl}/_api/web/lists/getbytitle('{listTitle}')/items({itemId})/AttachmentFiles/add(FileName='{fileName}')";
 
@@ -168,5 +210,7 @@ namespace Errepar.MetadataManager.Process.Services
                 Console.WriteLine($"✅ Log {fileName} guardado como adjunto");
             }
         }
+
+
     }
 }
