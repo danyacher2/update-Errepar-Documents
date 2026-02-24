@@ -1,11 +1,13 @@
-﻿using System;
+﻿using Errepar.MetadataManager.Process.Models;
+using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Errepar.MetadataManager.Process.Models;
 
 namespace Errepar.MetadataManager.Process.Services
 {
@@ -79,7 +81,7 @@ namespace Errepar.MetadataManager.Process.Services
                 var it = new ItemMetadataManager();
 
                 it.Id = TryGetInt(el, "Id") ?? 0;
-                it.Cambios = TryGetString(el, "Cambios");
+                it.Cambios = TryGetJson(el, "Cambios");
 
                 it.CantActivosProcesados = TryGetInt(el, "CantActivosProcesados", "Cant Activos Procesados");
                 it.CantActivosSeleccionados = TryGetInt(el, "CantActivosSeleccionados", "Cant Activos Seleccionados");
@@ -102,12 +104,72 @@ namespace Errepar.MetadataManager.Process.Services
 
             return items;
         }
+        
 
-        /// <summary>
-        /// Busca y descarga el contenido del archivo "Activos" de los adjuntos.
-        /// Parsea el contenido y lo devuelve como array de strings.
-        /// </summary>
-        private async Task<string[]> TryGetActivosAsync(HttpClient http, string siteUrl, string listTitle, int itemId, string datosAdjuntos, CancellationToken cancellationToken)
+private static JsonDocument TryGetJson(JsonElement el, string fieldName)
+    {
+        if (!el.TryGetProperty(fieldName, out var prop))
+            return null;
+
+        if (prop.ValueKind == JsonValueKind.Null)
+            return null;
+
+        // 🟢 Caso 1: ya es JSON real
+        if (prop.ValueKind == JsonValueKind.Array || prop.ValueKind == JsonValueKind.Object)
+        {
+            return JsonDocument.Parse(prop.GetRawText());
+        }
+
+        // 🟡 Caso 2: string
+        if (prop.ValueKind == JsonValueKind.String)
+        {
+            var raw = prop.GetString();
+
+            if (string.IsNullOrWhiteSpace(raw))
+                return null;
+
+            raw = raw.Trim();
+
+            // 🔴 Si viene HTML → limpiamos tags
+            if (raw.StartsWith("<"))
+            {
+                // 1) quitar tags HTML
+                raw = Regex.Replace(raw, "<.*?>", string.Empty);
+
+                // 2) decodificar entidades HTML
+                raw = WebUtility.HtmlDecode(raw);
+
+                raw = raw.Trim();
+            }
+
+            // 🧠 ahora intentamos parsear como JSON real
+            if ((raw.StartsWith("[") && raw.EndsWith("]")) ||
+                (raw.StartsWith("{") && raw.EndsWith("}")))
+            {
+                try
+                {
+                    return JsonDocument.Parse(raw);
+                }
+                catch (JsonException)
+                {
+                    // si está corrupto, lo envolvemos como string
+                    var safe = JsonSerializer.Serialize(raw);
+                    return JsonDocument.Parse(safe);
+                }
+            }
+
+            // 🔵 No es JSON → lo devolvemos como string JSON
+            var safeJson = JsonSerializer.Serialize(raw);
+            return JsonDocument.Parse(safeJson);
+        }
+
+        return null;
+    }
+    /// <summary>
+    /// Busca y descarga el contenido del archivo "Activos" de los adjuntos.
+    /// Parsea el contenido y lo devuelve como array de strings.
+    /// </summary>
+    private async Task<string[]> TryGetActivosAsync(HttpClient http, string siteUrl, string listTitle, int itemId, string datosAdjuntos, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(datosAdjuntos))
                 return Array.Empty<string>();

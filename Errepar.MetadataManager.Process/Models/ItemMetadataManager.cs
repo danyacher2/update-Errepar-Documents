@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Text.Json;
 
 namespace Errepar.MetadataManager.Process.Models
 {
@@ -7,7 +9,7 @@ namespace Errepar.MetadataManager.Process.Models
         public int Id { get; set; }//
 
         // Campos de la lista (según la imagen)
-        public string Cambios { get; set; }//
+        public JsonDocument Cambios { get; set; }
         public int? CantActivosProcesados { get; set; }//
         public int? CantActivosSeleccionados { get; set; }//
         public DateTime? Creado { get; set; }//
@@ -23,5 +25,7 @@ namespace Errepar.MetadataManager.Process.Models
         public string Scope { get; set; }     // Editor (nombre)
         public string Adjuntos{ get; set; }
         public List<string> Activos { get; set; }
+
+        
     }
 }

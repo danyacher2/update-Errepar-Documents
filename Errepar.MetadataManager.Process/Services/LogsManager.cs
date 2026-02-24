@@ -25,7 +25,11 @@ namespace Errepar.MetadataManager.Process.Services
 
     public class ItemLogActivosProcesados
     {
-        public int ItemId { get; set; }
+        public int ItemCambiosId { get; set; }
+        public int ItemListId { get; set; }
+        public int TimeStamp { get; set; }
+        public string UrlItem { get; set; }
+        public string LibraryName { get; set; }
         public string Activo { get; set; }
         public bool Procesado { get; set; }
         public DateTime Fecha { get; set; }
