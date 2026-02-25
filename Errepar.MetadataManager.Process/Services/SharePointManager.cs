@@ -44,7 +44,8 @@ namespace Errepar.MetadataManager.Process.Services
                 "Author/Title,Editor/Title,EstadoProceso,FechaFinalizado,FechaPendiente,LinkMetadataManager," +
                 "Modified,EjecutadoPor/Title,EjecutadoPor/Id,AttachmentFiles/ServerRelativeUrl" +
                 "&$expand=Author,Editor,AttachmentFiles,EjecutadoPor" +
-                "&$filter=(EstadoProceso eq 'Pendiente') or (EstadoProceso eq 'En Pausa')";
+                "&$filter=(EstadoProceso eq 'Pendiente')";
+                //"&$filter=(EstadoProceso eq 'Pendiente') or (EstadoProceso eq 'En Pausa')";
             ;
              using var resp = await _http.GetAsync(endpoint, cancellationToken).ConfigureAwait(false);
              resp.EnsureSuccessStatusCode();

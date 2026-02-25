@@ -106,7 +106,16 @@ try
 
                     var item = file.ListItemAllFields;
 
-                    if (it.Cambios != null)
+            var jsonOldItem = JsonSerializer.Serialize(item.FieldValues, jsonOptions);
+
+            var folder = Path.Combine(AppContext.BaseDirectory, "searchLogs");
+            Directory.CreateDirectory(folder);
+
+            var filePath = Path.Combine(folder, $"ListItems/SearchOriginal_{activo}.json");
+            System.IO.File.WriteAllText(filePath, jsonOldItem, Encoding.UTF8);
+            Console.WriteLine($"✅ JSON completo guardado en: {filePath}");
+
+            if (it.Cambios != null)
                     {
                         var root = it.Cambios.RootElement;
 
@@ -121,23 +130,24 @@ try
                         {
                             cambios.Procesar(item, root);
                         }
-                        item.SystemUpdate();   
-                        context.ExecuteQuery();
+                        item.SystemUpdate();
+                context.ExecuteQuery();
 
                     }
-        
-
-
             var json = JsonSerializer.Serialize(item.FieldValues, jsonOptions);
 
-                    var folder = Path.Combine(AppContext.BaseDirectory, "searchLogs");
-                    Directory.CreateDirectory(folder);
+            var baseFolder = Path.Combine(AppContext.BaseDirectory, "searchLogs");
+            var listItemsFolder = Path.Combine(baseFolder, "ListItems");
 
-                    var filePath = Path.Combine(folder, $"ListItems/Search_{activo}.json");
-                    System.IO.File.WriteAllText(filePath, json, Encoding.UTF8);
-                    Console.WriteLine($"✅ JSON completo guardado en: {filePath}");
+            Directory.CreateDirectory(listItemsFolder); // crea toda la estructura
 
-                //}
+            var filePathNewItem = Path.Combine(listItemsFolder, $"Search_{activo}.json");
+
+            System.IO.File.WriteAllText(filePathNewItem, json, Encoding.UTF8);
+
+            Console.WriteLine($"✅ JSON completo guardado en: {filePathNewItem}");
+
+            //}
 
             //}
             //else
@@ -156,9 +166,9 @@ try
             var logActivo = new ItemLogActivosProcesados
             {
                 ItemCambiosId = it.Id,
-                ItemListId = (int)item.FieldValues["Id"],
+                ItemListId = Convert.ToInt32(item.FieldValues["ID"]),
                 LibraryName = item.FieldValues["Title"].ToString(),
-                TimeStamp = (int)item.FieldValues["TimeStamp"],
+                TimeStamp = Convert.ToInt32(item.FieldValues["ID"]),
                 UrlItem = item.FieldValues["FileRef"].ToString(),
                 Activo = activo,
                 Procesado = true,

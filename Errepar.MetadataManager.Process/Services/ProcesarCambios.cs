@@ -86,8 +86,18 @@ public class ProcesarCambios
                 case "text":
                 case "multitext":
                 case "numbers":
-                case "date":
-                    item[campo] = valor;
+                case "date":                    
+                    var internalName = campo;
+
+                    var convertedValue = ConvertirValor(tipo, valor);
+
+                    if (convertedValue == null)
+                    {
+                        return;
+                    }
+
+
+                    item[internalName] = convertedValue;
                     break;
 
                 case "boolean":
@@ -176,5 +186,52 @@ public class ProcesarCambios
             Agregar(item, campo, tipo, valor, cambio);
         }
 
+        object ConvertirValor(string tipo, string valor)
+        {
+            if (valor == null) return null;
+
+            tipo = tipo?.ToLower();
+
+            switch (tipo)
+            {
+                case "text":
+                case "multitext":
+                    return valor;
+
+                case "numbers":
+                    if (double.TryParse(valor, out var num))
+                        return num;
+                    return null;
+
+                case "date":
+                    if (DateTime.TryParse(valor, out var dt))
+                        return dt;
+                    return null;
+
+                case "boolean":
+                    if (bool.TryParse(valor, out var b))
+                        return b;
+                    return null;
+
+                case "choice":
+                    return valor; // string exacto del choice
+
+                case "lookup":
+                    // valor = ID del item lookup
+                    if (int.TryParse(valor, out var id))
+                        return new FieldLookupValue { LookupId = id };
+                    return null;
+
+                case "metadata":
+                    // formato: Label|TermGuid
+                    var parts = valor.Split('|');
+                    if (parts.Length == 2)
+                        return parts[0] + "|" + parts[1];
+                    return null;
+
+                default:
+                    return null;
+            }
+        }
     }
 }
