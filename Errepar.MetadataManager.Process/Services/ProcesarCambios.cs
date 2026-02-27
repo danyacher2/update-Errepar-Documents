@@ -1,5 +1,6 @@
 using Errepar.MetadataManager.Process.Models;
 using Microsoft.SharePoint.Client;
+using Microsoft.SharePoint.Client.Taxonomy;
 using System;
 using System.Net;
 using System.Net.Http;
@@ -44,24 +45,33 @@ public class ProcesarCambios
             var tipo = GetString(cambio, "tipo");
             var valor = GetString(cambio, "valor");
 
-            if (string.IsNullOrWhiteSpace(action) || string.IsNullOrWhiteSpace(campo))
+            string taxonomyGuid = null;
+            string taxonomyName = null;
+
+            JsonElement taxonomyTermsElement;
+            if (cambio.TryGetProperty("taxonomyTerms", out taxonomyTermsElement)
+                && taxonomyTermsElement.ValueKind == JsonValueKind.Array)
             {
-                Console.WriteLine("⚠ Cambio inválido (faltan campos obligatorios)");
-                return;
+                foreach (var term in taxonomyTermsElement.EnumerateArray())
+                {
+                    taxonomyGuid = term.GetProperty("id").GetString();
+                    taxonomyName = term.GetProperty("labels")[0].GetProperty("name").GetString();
+                    break; // single taxonomy
+                }
             }
 
             switch (action.ToLower())
             {
                 case "agregar":
-                    Agregar(sharepointItem, campo, tipo, valor, cambio);
+                    Agregar(sharepointItem, campo, tipo, valor, taxonomyName, taxonomyGuid);
                     break;
 
                 case "quitar":
-                    Quitar(sharepointItem, campo, tipo, valor, cambio);
+                    Quitar(sharepointItem, campo, tipo, valor, taxonomyName, taxonomyGuid);
                     break;
 
                 case "reemplazar":
-                    Reemplazar(sharepointItem, campo, tipo, valor, cambio);
+                    // Reemplazar(sharepointItem, campo, tipo, valor, taxonomyName, taxonomyGuid);
                     break;
 
                 default:
@@ -76,7 +86,7 @@ public class ProcesarCambios
 
             return null;
         }
-        public void Agregar(ListItem item, string campo, string tipo, string valor, JsonElement cambio)
+        public void Agregar(ListItem item, string campo, string tipo, string valor, string taxName="", string taxGuid="")
         {
             tipo = tipo?.ToLower();
 
@@ -120,13 +130,22 @@ public class ProcesarCambios
 
                 // 🔹 Managed Metadata
                 case "metadata":
+                    if (!string.IsNullOrWhiteSpace(taxGuid))
                     {
-                        // Esperado: "Label|TermGuid"
-                        var parts = valor.Split('|');
-                        if (parts.Length == 2)
+                        var field = item.ParentList.Fields.GetByInternalNameOrTitle(campo);
+                        _context.Load(field);
+                        _context.ExecuteQuery();
+
+                        var taxField = _context.CastTo<TaxonomyField>(field);
+
+                        var taxValue = new TaxonomyFieldValue
                         {
-                            item[campo] = parts[0] + "|" + parts[1];
-                        }
+                            Label = taxName,
+                            TermGuid = taxGuid,
+                            WssId = -1
+                        };
+
+                        taxField.SetFieldValueByValue(item, taxValue);
                     }
                     break;
 
@@ -136,7 +155,7 @@ public class ProcesarCambios
             }
         }
 
-        public void Quitar(ListItem item, string campo, string tipo, string valor, JsonElement cambio)
+        public void Quitar(ListItem item, string campo, string tipo, string valor, string taxName, string taxGuid)
         {
             tipo = tipo?.ToLower();
 
@@ -180,11 +199,11 @@ public class ProcesarCambios
                     break;
             }
         }
-        public void Reemplazar(ListItem item, string campo, string tipo, string valor, JsonElement cambio)
-        {
-            Quitar(item, campo, tipo, valor, cambio);
-            Agregar(item, campo, tipo, valor, cambio);
-        }
+        //public void Reemplazar(ListItem item, string campo, string tipo, string valor, JsonElement cambio)
+        //{
+        //    Quitar(item, campo, tipo, valor, cambio);
+        //    Agregar(item, campo, tipo, valor, cambio);
+        //}
 
         object ConvertirValor(string tipo, string valor)
         {
