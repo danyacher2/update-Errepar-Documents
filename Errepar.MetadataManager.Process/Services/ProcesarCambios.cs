@@ -2,6 +2,7 @@ using Errepar.MetadataManager.Process.Models;
 using Microsoft.SharePoint.Client;
 using Microsoft.SharePoint.Client.Taxonomy;
 using System;
+using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
@@ -44,9 +45,12 @@ public class ProcesarCambios
             var campo = GetString(cambio, "campo");
             var tipo = GetString(cambio, "tipo");
             var valor = GetString(cambio, "valor");
+            var vuevoValor = GetString(cambio, "nuevoValor");
 
             string taxonomyGuid = null;
             string taxonomyName = null;
+            string taxonomyNewName = null;
+            string taxonomyNewGuid = null;
 
             JsonElement taxonomyTermsElement;
             if (cambio.TryGetProperty("taxonomyTerms", out taxonomyTermsElement)
@@ -56,6 +60,16 @@ public class ProcesarCambios
                 {
                     taxonomyGuid = term.GetProperty("id").GetString();
                     taxonomyName = term.GetProperty("labels")[0].GetProperty("name").GetString();
+                    break; // single taxonomy
+                }
+            }
+            if (cambio.TryGetProperty("taxonomyReplaceTerms", out taxonomyTermsElement)
+                && taxonomyTermsElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var term in taxonomyTermsElement.EnumerateArray())
+                {
+                    taxonomyNewGuid = term.GetProperty("id").GetString();
+                    taxonomyNewName = term.GetProperty("labels")[0].GetProperty("name").GetString();
                     break; // single taxonomy
                 }
             }
@@ -71,7 +85,7 @@ public class ProcesarCambios
                     break;
 
                 case "reemplazar":
-                    // Reemplazar(sharepointItem, campo, tipo, valor, taxonomyName, taxonomyGuid);
+                    Reemplazar(sharepointItem, campo, tipo, valor, vuevoValor, taxonomyName, taxonomyGuid, taxonomyNewName, taxonomyNewGuid);
                     break;
 
                 default:
@@ -94,54 +108,14 @@ public class ProcesarCambios
             {
                 // 🔹 Campos simples
                 case "numbers":
-                    {
-                        var actual = item[campo];
-
-                        double numeroActual = 0;
-
-                        if (actual != null && double.TryParse(actual.ToString(), out var parsed))
-                            numeroActual = parsed;
-
-                        var nuevoValor = numeroActual + valor;
-
-                        item[campo] = nuevoValor;
-                    }
-                    break;
-                case "date": {
-                        if (item[campo] == null)
+                case "date": 
+                case "text":
+                case "multitext":                
+                                    {
+                        if (item[campo] != valor)
                         {
                             item[campo] = valor;
                         }
-                    }
-                    break;
-                case "text":
-                case "multitext":                
-                
-                    {
-                        var internalName = campo;
-                        var convertedValue = ConvertirValor(tipo, valor);
-
-                        if (convertedValue == null)
-                            return;
-
-                        var actual = item[internalName];
-
-                        // Si no existe valor previo → set directo
-                        if (actual == null || string.IsNullOrWhiteSpace(actual.ToString()))
-                        {
-                            item[internalName] = convertedValue.ToString();
-                            return;
-                        }
-
-                        var textoActual = actual.ToString();
-                        var textoNuevo = convertedValue.ToString();
-
-                        // 🧠 Evitar duplicados exactos
-                        if (textoActual.Contains(textoNuevo))
-                            return;
-
-                        // 👉 Concatenar con separador
-                        item[internalName] = $"{textoActual} {textoNuevo}";
                     }
                     break;
 
@@ -210,12 +184,13 @@ public class ProcesarCambios
                         item[campo] = new FieldLookupValue { LookupId = lookupId };
                     }
                     break;
-
-                // 🔹 Managed Metadata (single value)
                 case "metadata":
                     {
                         if (string.IsNullOrWhiteSpace(taxGuid))
                             return;
+
+                        _context.Load(item);
+                        _context.ExecuteQuery();
 
                         var field = item.ParentList.Fields.GetByInternalNameOrTitle(campo);
                         _context.Load(field);
@@ -223,28 +198,55 @@ public class ProcesarCambios
 
                         var taxField = _context.CastTo<TaxonomyField>(field);
 
-                        // 🔍 Leer valor actual
-                        var currentResult = taxField.GetFieldValueAsTaxonomyFieldValue(item[campo]?.ToString());
-                        _context.ExecuteQuery();
-
-                        var currentValue = currentResult.Value; // 👈 ahora sí
-
-                        // 🧠 Si ya existe y es el mismo término → no tocar
-                        if (currentValue != null &&
-                            currentValue.TermGuid != null &&
-                            currentValue.TermGuid.Equals(taxGuid, StringComparison.OrdinalIgnoreCase))
+                        if (taxField.AllowMultipleValues)
                         {
-                            return;
+                            var termStrings = new List<string>();
+
+                            if (item[campo] != null)
+                            {
+                                var currentCollection = item[campo] as TaxonomyFieldValueCollection;
+
+                                if (currentCollection != null)
+                                {
+                                    foreach (var t in currentCollection)
+                                    {
+                                        if (t.TermGuid.Equals(taxGuid, StringComparison.OrdinalIgnoreCase))
+                                            return;
+
+                                        termStrings.Add($"-1;#{t.Label}|{t.TermGuid}");
+                                    }
+                                }
+                            }
+
+                            var nombreFinal = taxName.Contains(":")
+                                ? taxName.Split(':').Last()
+                                : taxName;
+
+                            termStrings.Add($"-1;#{nombreFinal}|{taxGuid}");
+
+                            string nuevoValorInterno = string.Join(";#", termStrings);
+
+                            var nuevaCollection = new TaxonomyFieldValueCollection(
+                                _context,
+                                nuevoValorInterno,
+                                taxField);
+
+                            taxField.SetFieldValueByValueCollection(item, nuevaCollection);
+                        }
+                        else
+                        {
+                            var taxValue = new TaxonomyFieldValue
+                            {
+                                Label = taxName,
+                                TermGuid = taxGuid,
+                                WssId = -1
+                            };
+
+                            taxField.SetFieldValueByValue(item, taxValue);
                         }
 
-                        var taxValue = new TaxonomyFieldValue
-                        {
-                            Label = taxName,
-                            TermGuid = taxGuid,
-                            WssId = -1
-                        };
-
-                        taxField.SetFieldValueByValue(item, taxValue);
+                        item.Update();
+                        _context.ExecuteQuery();
                     }
                     break;
 
@@ -262,55 +264,21 @@ public class ProcesarCambios
 
             switch (tipo)
             {
-                // 🔹 TEXT / MULTITEXT
                 case "text":
-                case "multitext":
-                    {
-                        var actual = item[campo]?.ToString() ?? "";
-
-                        if (string.IsNullOrWhiteSpace(actual))
-                            return;
-
-                        if (!actual.Contains(valor))
-                            return; 
-
-                        var nuevo = actual.Replace(valor, "").Trim();
-
-                        
-                        nuevo = nuevo.Replace(";;", ";").Trim(';').Trim();
-
-                        item[campo] = string.IsNullOrWhiteSpace(nuevo) ? null : nuevo;
-                    }
-                    break;
-
-                // 🔹 NUMBERS / DATE / BOOLEAN
+                case "date":
+                case "multitext":                    
                 case "numbers":
                     {
                         if (item[campo] == null)
                             return;
-
-                        var actualStr = item[campo].ToString();
-
-                        if (!actualStr.Contains(valor))
-                            return;
-
-                        var nuevoStr = actualStr.Replace(valor, "").Trim();
-
-                        // Si queda vacío → null
-                        if (string.IsNullOrWhiteSpace(nuevoStr))
+                        if (item[campo]== valor)
                         {
                             item[campo] = null;
-                            return;
                         }
-
-                        // Validar que siga siendo número
-                        if (double.TryParse(nuevoStr, out var nuevoNumero))
-                            item[campo] = nuevoNumero;
-                        else
-                            item[campo] = null; // o lanzar error según lógica
+                        
                     }
                     break;
-                case "date":
+                
                 case "boolean":
                     {
                         var actual = item[campo];
@@ -395,53 +363,59 @@ public class ProcesarCambios
                 // 🔹 METADATA (single o multi)
                 case "metadata":
                     {
+                        if (string.IsNullOrWhiteSpace(taxGuid))
+                            return;
+
                         var field = item.ParentList.Fields.GetByInternalNameOrTitle(campo);
                         _context.Load(field);
                         _context.ExecuteQuery();
 
                         var taxField = _context.CastTo<TaxonomyField>(field);
 
-                        // obtener valores actuales
-                        var currentValue = item[campo]?.ToString();
+                        _context.Load(item);
+                        _context.ExecuteQuery();
 
-                        if (string.IsNullOrWhiteSpace(currentValue))
-                            return;
-
-                        // multi metadata
-                        if (currentValue.Contains(";"))
+                        if (taxField.AllowMultipleValues)
                         {
-                            var valores = currentValue.Split(';').ToList();
+                            var currentValues = item[campo] as TaxonomyFieldValueCollection;
 
-                            // formato: Label|Guid
-                            var nuevo = valores
-                                .Where(v => !v.EndsWith("|" + taxGuid, StringComparison.OrdinalIgnoreCase))
+                            if (currentValues == null || currentValues.Count == 0)
+                                return;
+
+                            // Filtrar términos
+                            var remainingTerms = currentValues
+                                .Cast<TaxonomyFieldValue>()
+                                .Where(t => !t.TermGuid.Equals(taxGuid, StringComparison.OrdinalIgnoreCase))
                                 .ToList();
 
-                            if (nuevo.Count == valores.Count)
-                                return; // ❌ no existía → no hace nada
+                            // Construir string en formato interno
+                            string newValue = string.Join(";#", remainingTerms.Select(t =>
+                                $"-1;#{t.Label}|{t.TermGuid}"));
 
-                            if (nuevo.Count == 0)
-                            {
-                                // ⚠ verificar required
-                                if (!EsCampoRequerido(field))
-                                    taxField.SetFieldValueByValue(item, null);
-                            }
-                            else
-                            {
-                                var final = string.Join(";", nuevo);
-                                var col = taxField.GetFieldValueAsTaxonomyFieldValueCollection(final);
-                                taxField.SetFieldValueByValueCollection(item, col);
-                            }
+                            // Crear nueva colección
+                            var newCollection = new TaxonomyFieldValueCollection(_context, newValue, taxField);
+
+                            taxField.SetFieldValueByValueCollection(item, newCollection);
+                            item.Update();
+                            _context.ExecuteQuery();
                         }
                         else
                         {
-                            // single metadata
-                            if (currentValue.EndsWith("|" + taxGuid, StringComparison.OrdinalIgnoreCase))
+                            // SINGLE VALUE
+                            var currentResult = taxField.GetFieldValueAsTaxonomyFieldValue(campo);
+                            _context.ExecuteQuery();
+
+                            var currentValue = currentResult.Value;
+
+                            if (currentValue != null &&
+                                currentValue.TermGuid.Equals(taxGuid, StringComparison.OrdinalIgnoreCase))
                             {
-                                if (!EsCampoRequerido(field))
-                                    taxField.SetFieldValueByValue(item, null);
+                                item[campo] = null;
                             }
                         }
+
+                            item.Update();
+                        _context.ExecuteQuery();
                     }
                     break;
 
@@ -457,55 +431,197 @@ public class ProcesarCambios
             _context.ExecuteQuery();
             return field.Required;
         }
-        //public void Reemplazar(ListItem item, string campo, string tipo, string valor, JsonElement cambio)
-        //{
-        //    Quitar(item, campo, tipo, valor, cambio);
-        //    Agregar(item, campo, tipo, valor, cambio);
-        //}
-
-        object ConvertirValor(string tipo, string valor)
+        public void Reemplazar(ListItem item, string campo, string tipo, string valor,string vuevoValor, string taxName = "", string taxGuid = "",string taxNewName="",string taxNewGuid="")
         {
-            if (string.IsNullOrWhiteSpace(valor))
-                return null;
-
             tipo = tipo?.ToLower();
+
+            if (!item.FieldValues.ContainsKey(campo))
+                return;
 
             switch (tipo)
             {
                 case "text":
                 case "multitext":
-                case "choice":
-                    return valor;
-
                 case "numbers":
-                    if (int.TryParse(valor, out var i))
-                        return i;
-                    if (double.TryParse(valor, out var d))
-                        return d;
-                    return null;
-
+                    {
+                        //Console.WriteLine(item[campo].ToString() +"=="+ new Date(valor));
+                        if (item[campo].ToString() == valor)
+                          item[campo] = vuevoValor;
+                    }
+                    break;
                 case "date":
-                    if (DateTime.TryParse(valor, out var dt))
-                        return dt;
-                    return null;
+                    {
+                        var fechaItem = (DateTime)item[campo];
+                        var fechaValor = DateTime.Parse(valor, null, DateTimeStyles.RoundtripKind);
+
+                        if (fechaItem.Date == fechaValor.Date)
+                        {
+                            item[campo] = vuevoValor;
+
+                        }
+                    }
+                    break;
 
                 case "boolean":
-                    if (bool.TryParse(valor, out var b))
-                        return b;
-                    return null;
+                    {
+                        var actual = item[campo];
+                        if (actual == null)
+                            return;
+
+                        if (actual.ToString().Equals(valor, StringComparison.OrdinalIgnoreCase))
+                        {
+                            item[campo] = vuevoValor;
+                        }
+                    }
+                    break;
+
+                case "choice":
+                    {
+                        var spField = item.ParentList.Fields.GetByInternalNameOrTitle(campo);
+                        _context.Load(spField);
+                        _context.ExecuteQuery();
+
+                        var actualValue = item[campo];
+
+                        if (actualValue == null)
+                            return;
+
+                        // 🔹 MULTI CHOICE
+                        if (spField.TypeAsString == "MultiChoice")
+                        {
+                            var valores = new List<string>();
+
+                            if (actualValue is string[] arr)
+                                valores.AddRange(arr);
+                            else
+                                valores.AddRange(
+                                    actualValue.ToString()
+                                               .Split(new[] { ";#" }, StringSplitOptions.RemoveEmptyEntries)
+                                );
+
+                            bool cambiado = false;
+
+                            for (int i = 0; i < valores.Count; i++)
+                            {
+                                if (valores[i].Equals(valor, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    valores[i] = vuevoValor;
+                                    cambiado = true;
+                                }
+                            }
+
+                            if (cambiado)
+                                item[campo] = valores.ToArray();
+                        }
+                        else
+                        {
+                            // 🔹 SINGLE CHOICE
+                            if (actualValue.ToString().Equals(vuevoValor, StringComparison.OrdinalIgnoreCase))
+                            {
+                                item[campo] = vuevoValor;
+                            }
+                        }
+                    }
+                    break;
 
                 case "lookup":
-                    if (int.TryParse(valor, out var id))
-                        return new FieldLookupValue { LookupId = id };
-                    return null;
+                    {
+                        if (item[campo] == null)
+                            return;
+
+                        // multi lookup
+                        if (item[campo] is FieldLookupValue[] multi)
+                        {
+                            var nuevaLista = multi
+                                .Where(l => l.LookupId.ToString() != valor)
+                                .ToArray();
+
+                            if (nuevaLista.Length != multi.Length)
+                                item[campo] = nuevaLista.Length == 0 ? null : nuevaLista;
+                        }
+                        // single lookup
+                        else if (item[campo] is FieldLookupValue single)
+                        {
+                            if (single.LookupId.ToString() == valor)
+                                item[campo] = null;
+                        }
+                    }
+                    break;
 
                 case "metadata":
-                    // ⚠️ Este método NO debe usarse para metadata
-                    // metadata se maneja por TaxonomyField.SetFieldValueByValue()
-                    return null;
+                    {
+                        if (string.IsNullOrWhiteSpace(taxGuid))
+                            return;
+
+                        var field = item.ParentList.Fields.GetByInternalNameOrTitle(campo);
+                        _context.Load(field);
+                        _context.ExecuteQuery();
+
+                        var taxField = _context.CastTo<TaxonomyField>(field);
+
+                        _context.Load(item);
+                        _context.ExecuteQuery();
+
+                        if (taxField.AllowMultipleValues)
+                        {
+                            var currentValues = item[campo] as TaxonomyFieldValueCollection;
+
+                            if (currentValues == null || currentValues.Count == 0)
+                                return;
+
+                            var remainingTerms = currentValues
+                                .Cast<TaxonomyFieldValue>()
+                                .Where(t => !t.TermGuid.Equals(taxGuid, StringComparison.OrdinalIgnoreCase))
+                                .ToList();
+
+                            var nuevoTerm = new TaxonomyFieldValue
+                            {
+                                Label = taxNewName,
+                                TermGuid = taxNewGuid,
+                                WssId = -1
+                            };
+
+                            remainingTerms.Add(nuevoTerm);
+
+                            string newValue = string.Join(";#", remainingTerms.Select(t =>
+                                $"-1;#{t.Label}|{t.TermGuid}"));
+
+                            var newCollection = new TaxonomyFieldValueCollection(_context, newValue, taxField);
+
+                            taxField.SetFieldValueByValueCollection(item, newCollection);
+                            item.Update();
+                            _context.ExecuteQuery();
+                        }
+                        else
+                        {
+                            var currentResult = taxField.GetFieldValueAsTaxonomyFieldValue(item[campo].ToString());
+                            _context.ExecuteQuery();
+
+                            var currentValue = currentResult.Value;
+
+                            if (currentValue != null &&
+                                currentValue.TermGuid.Equals(taxGuid, StringComparison.OrdinalIgnoreCase))
+                            {
+                                var nuevoTerm = new TaxonomyFieldValue
+                                {
+                                    Label = taxNewName,
+                                    TermGuid = taxNewGuid,
+                                    WssId = -1
+                                };
+
+                                taxField.SetFieldValueByValue(item, nuevoTerm);
+                            }
+                        }
+
+                        item.Update();
+                        _context.ExecuteQuery();
+
+                    }
+                    break;
 
                 default:
-                    return null;
+                    Console.WriteLine($"⚠ Tipo no soportado en QUITAR: {tipo}");
+                    break;
             }
         }
     }

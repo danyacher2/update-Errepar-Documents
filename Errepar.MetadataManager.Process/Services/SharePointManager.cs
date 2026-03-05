@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -83,6 +84,7 @@ namespace Errepar.MetadataManager.Process.Services
 
                 it.Id = TryGetInt(el, "Id") ?? 0;
                 it.Cambios = TryGetJson(el, "Cambios");
+                
 
                 it.CantActivosProcesados = TryGetInt(el, "CantActivosProcesados", "Cant Activos Procesados");
                 it.CantActivosSeleccionados = TryGetInt(el, "CantActivosSeleccionados", "Cant Activos Seleccionados");
@@ -105,9 +107,24 @@ namespace Errepar.MetadataManager.Process.Services
 
             return items;
         }
-        
 
-private static JsonDocument TryGetJson(JsonElement el, string fieldName)
+        public async Task UpdateListItemAsync(int id, Dictionary<string, object> fields)
+        {
+            var url = $"{_siteUrl}/_api/web/lists/getbytitle('{_listTitle}')/items({id})";
+
+            var request = new HttpRequestMessage(HttpMethod.Post, url);
+            request.Headers.Add("IF-MATCH", "*");
+            request.Headers.Add("X-HTTP-Method", "MERGE");
+
+            var json = JsonSerializer.Serialize(fields);
+
+            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _http.SendAsync(request);
+
+            response.EnsureSuccessStatusCode();
+        }
+        private static JsonDocument TryGetJson(JsonElement el, string fieldName)
     {
         if (!el.TryGetProperty(fieldName, out var prop))
             return null;

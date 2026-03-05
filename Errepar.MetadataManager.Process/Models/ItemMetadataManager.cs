@@ -1,3 +1,4 @@
+using Microsoft.SharePoint.Client;
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
@@ -25,7 +26,8 @@ namespace Errepar.MetadataManager.Process.Models
         public string Scope { get; set; }     // Editor (nombre)
         public string Adjuntos{ get; set; }
         public List<string> Activos { get; set; }
+        public ListItem ListItem { get; set; }
 
-        
+
     }
 }

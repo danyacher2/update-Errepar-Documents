@@ -9,12 +9,16 @@ using Microsoft.SharePoint.News.DataModel;
 using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.NetworkInformation;
 using System.Security;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 using static System.Net.WebRequestMethods;
+using Microsoft.SharePoint.Client;
+using System.Linq;
 
 var jsonOptions = new JsonSerializerOptions
 {
@@ -77,25 +81,29 @@ try
                 //Console.WriteLine("Path encontrado: " + hit.Path);
 
                 var siteUri = new Uri(siteUrl);
-                //var hitUri = new Uri(hit.Path);
+            //var hitUri = new Uri(hit.Path);
 
-                //var serverRelativeUrl = new Uri(hit.Path).AbsolutePath;
-    //.Replace("/sites/Errepar", "/sites/ErreparDesarrollo");
+            //var serverRelativeUrl = new Uri(hit.Path).AbsolutePath;
+            //.Replace("/sites/Errepar", "/sites/ErreparDesarrollo");
 
-                // Validación defensiva
-                //if (!serverRelativeUrl.StartsWith(siteUri.AbsolutePath, StringComparison.OrdinalIgnoreCase))
-                //{
-                //    Console.WriteLine("El item no pertenece a la misma url");
-                //}
-                //else
-                //{
+            // Validación defensiva
+            //if (!serverRelativeUrl.StartsWith(siteUri.AbsolutePath, StringComparison.OrdinalIgnoreCase))
+            //{
+            //    Console.WriteLine("El item no pertenece a la misma url");
+            //}
+            //else
+            //{
 
 
 
-                    //var file = context.Web.GetFileByServerRelativeUrl(serverRelativeUrl);
-                    var file = context.Web.GetFileByServerRelativeUrl("/sites/ErreparDesarrollo/Documento/00-sin-obra/2024/20240126103422795/20240126103422795.html");
+            //var file = context.Web.GetFileByServerRelativeUrl(serverRelativeUrl);
+            var file = context.Web.GetFileByServerRelativeUrl("/sites/ErreparDesarrollo/Documento/00-sin-obra/2024/20240126103422795/20240126103422795.html");
 
-                    context.Load(file, f => f.ListItemAllFields, f => f.Exists);
+
+            //var file = finder(new Guid(activo), context);
+
+
+            context.Load(file, f => f.ListItemAllFields, f => f.Exists);
                     context.ExecuteQuery();
 
                     if (!file.Exists)
@@ -176,12 +184,22 @@ try
             };
 
             await logsManager.SaveLogActivosProcesados(it.Id, new[] { logActivo });
+            
         }
 
 
+//        await sp.UpdateListItemAsync(
+//    it.Id,
+//    new Dictionary<string, object>
+//    {
+//        { "EstadoProceso", "Finalizado" }
+//    }
+//);
         await logsManager.SyncLogs(it.Id,  cts.Token);
 
+        
     }
+  
 }
 catch (Exception ex)
 {
@@ -194,6 +212,130 @@ finally
     Console.WriteLine("Proceso finalizado con código " + Environment.ExitCode + ". Presiona una tecla para cerrar...");
     Console.ReadKey();
 }
+
+
+//ListItem finder( Guid uniqueId, Func<string, ClientContext> ctxFactory)
+//{
+//    List<List> lists;
+
+//    var candidates = lists
+//        .Where(l => !l.Hidden)
+//        .Where(l => l.BaseTemplate == 100 || l.BaseTemplate == 101) // 100=Custom List, 101=Doc Library
+//        .Where(l => l.ItemCount > 0) // opcional: acelera
+//        .ToList();
+
+//    Console.WriteLine($"Candidatas: {candidates.Count}");
+
+//    foreach (var list in candidates)
+//    {
+//        var caml = new CamlQuery
+//        {
+//            ViewXml = $@"
+//<View Scope='RecursiveAll'>
+//  <Query>
+//    <Where>
+//      <Eq>
+//        <FieldRef Name='UniqueId' />
+//        <Value Type='Guid'>{uniqueId}</Value>
+//      </Eq>
+//    </Where>
+//  </Query>
+//  <RowLimit>1</RowLimit>
+//</View>"
+//        };
+
+//        var items = list.GetItems(caml);
+
+//        // Cargamos campos mínimos. FileRef/Title pueden no existir en todos los casos.
+//        ctx.Load(items, it => it.Include(
+//            x => x.Id,
+//            x => x.FieldValuesAsText // útil para no pinchar por campos faltantes
+//        ));
+
+//        try
+//        {
+//            ExecuteQueryWithRetry(ctx);
+//        }
+//        catch
+//        {
+//            // Si una lista específica falla por permisos o algo raro, seguimos
+//            continue;
+//        }
+
+//        var found = items.FirstOrDefault();
+//        if (found != null)
+//        {
+//            var fvat = found.FieldValuesAsText;
+//            string fileRef = TryGetText(fvat, "FileRef");
+//            string title = TryGetText(fvat, "Title");
+
+//            Console.WriteLine("ENCONTRADO");
+//            Console.WriteLine($"Lista:  {list.Title}");
+//            Console.WriteLine($"ListId: {list.Id}");
+//            Console.WriteLine($"ItemId: {found.Id}");
+//            if (!string.IsNullOrWhiteSpace(title)) Console.WriteLine($"Title:  {title}");
+//            if (!string.IsNullOrWhiteSpace(fileRef)) Console.WriteLine($"FileRef:{fileRef}");
+//            return found;
+//        }
+//    }
+
+//    Console.WriteLine("No encontrado en listas/bibliotecas candidatas.");
+//    return null;
+//}
+
+//static string TryGetText(FieldStringValues fvat, string key)
+//    => fvat.FieldValues.ContainsKey(key) ? fvat.FieldValues[key] : "";
+
+// static void ExecuteQueryWithRetry(ClientContext ctx, int maxRetries = 8)
+//{
+//    int delayMs = 500;
+//    for (int attempt = 1; attempt <= maxRetries; attempt++)
+//    {
+//        try
+//        {
+//            ctx.ExecuteQuery();
+//            return;
+//        }
+//        catch (ClientRequestException ex) when (IsThrottle(ex))
+//        {
+//            Thread.Sleep(delayMs);
+//            delayMs = Math.Min(delayMs * 2, 8000);
+//        }
+//        catch (ServerException ex) when (IsThrottle(ex))
+//        {
+//            Thread.Sleep(delayMs);
+//            delayMs = Math.Min(delayMs * 2, 8000);
+//        }
+//    }
+//    ctx.ExecuteQuery();
+//}
+
+
+//static bool IsThrottle(Exception ex)
+//{
+//    var msg = ex.Message ?? "";
+//    return msg.Contains("429") ||
+//           msg.Contains("503") ||
+//           msg.Contains("Too many requests", StringComparison.OrdinalIgnoreCase) ||
+//           msg.Contains("throttle", StringComparison.OrdinalIgnoreCase);
+//}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
  static string Base64Encode(string plainText)
 {
