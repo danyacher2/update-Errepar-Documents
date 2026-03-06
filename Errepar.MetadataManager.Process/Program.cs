@@ -4,9 +4,12 @@ using Errepar.MetadataManager.Process.Services;
 using Errepar.MetadataManager.Process.Services;
 using Microsoft.SharePoint.Client;
 using Microsoft.SharePoint.Client;
+using Microsoft.SharePoint.Client;
 using Microsoft.SharePoint.Client.Search.Query;
 using Microsoft.SharePoint.News.DataModel;
 using System;
+using System.Collections;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.NetworkInformation;
@@ -17,8 +20,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using static System.Net.WebRequestMethods;
-using Microsoft.SharePoint.Client;
-using System.Linq;
 
 var jsonOptions = new JsonSerializerOptions
 {
@@ -35,11 +36,11 @@ try
 
     // Autenticación con certificado usando thumbprint
     // Obtén el thumbprint desde el certificado instalado en Windows (ver pasos más abajo)
-    string certificateThumbprint = Environment.GetEnvironmentVariable("CERT_THUMBPRINT") 
+    string certificateThumbprint = Environment.GetEnvironmentVariable("CERT_THUMBPRINT")
         ?? "452079A2697BC9646023FAE02876488654BBDB2C"; // Reemplaza con tu thumbprint real
 
     // Generar token con certificado (thumbprint)
-    var authToken = await TokenProvider.GetSharePointTokenWithCertificateThumbprintAsync( tenantId, clientId, certificateThumbprint, siteUrl);
+    var authToken = await TokenProvider.GetSharePointTokenWithCertificateThumbprintAsync(tenantId, clientId, certificateThumbprint, siteUrl);
     using var http = new HttpClient();
 
     var context = new ClientContext(siteUrl);
@@ -68,19 +69,44 @@ try
     var webServerRelative = context.Web.ServerRelativeUrl;
     Console.WriteLine("ServerRelativeUrl del sitio: " + webServerRelative);
 
+
+    var libraryNames = new List<string>
+{
+    "Documento",
+    "Agenda",
+    "Doctrina",
+    "Guía Temática",
+    "Jurisprudencia Adm",
+    "Jurisprudencia Judicial",
+    "Legislación",
+    "Modelo",
+    "Actualidad",
+    "Videos",
+    "Podcast"
+};
+    var listas = new List<List>();
+
+    foreach (var name in libraryNames)
+    {
+        var list = context.Web.Lists.GetByTitle(name);
+        context.Load(list);
+        listas.Add(list);
+    }
+    var listaProbable = listas.FirstOrDefault(); ;
+
     Console.WriteLine($"Items obtenidos: {items.Count}");
     foreach (var it in items)
     {
         Console.WriteLine($"Id={it.Id} | Título='{it.Titulo}' | Estado='{it.EstadoProceso}' | EjecutadoPor='{it.EjecutadoPor}' | Link='{it.Link}'");
         foreach (var activo in it.Activos)
-        { 
-            var hit = searchService.ObtenerElementoPorGuid(activo);
+        {
+            //var hit = searchService.ObtenerElementoPorGuid(activo);
 
             //if (hit != null)
             //{
-                //Console.WriteLine("Path encontrado: " + hit.Path);
+            //Console.WriteLine("Path encontrado: " + hit.Path);
 
-                var siteUri = new Uri(siteUrl);
+            //var siteUri = new Uri(siteUrl);
             //var hitUri = new Uri(hit.Path);
 
             //var serverRelativeUrl = new Uri(hit.Path).AbsolutePath;
@@ -97,22 +123,38 @@ try
 
 
             //var file = context.Web.GetFileByServerRelativeUrl(serverRelativeUrl);
-            var file = context.Web.GetFileByServerRelativeUrl("/sites/ErreparDesarrollo/Documento/00-sin-obra/2024/20240126103422795/20240126103422795.html");
+            //var file = context.Web.GetFileByServerRelativeUrl("/sites/ErreparDesarrollo/Documento/00-sin-obra/2024/20240126103422795/20240126103422795.html");
 
 
-            //var file = finder(new Guid(activo), context);
+            
 
+            Console.WriteLine($"LIST item: {activo}");
+            
+            var item = FindItem(listas, new Guid(activo), context, ref listaProbable);
+            Thread.Sleep(1000);
 
-            context.Load(file, f => f.ListItemAllFields, f => f.Exists);
-                    context.ExecuteQuery();
+            Console.WriteLine($"LIST item: {listas} con el Guid {activo} y la lista probable {listaProbable}");
+            Console.WriteLine($"LIST item: {item}");
+            //listas, Guid uniqueId, ClientContext ctx, List listaProbable)
 
-                    if (!file.Exists)
-                    {
-                        Console.WriteLine("❌ El path no corresponde a un archivo");
-                        return;
-                    }
+            continue;
 
-                    var item = file.ListItemAllFields;
+            //context.Load(file, f => f.ListItemAllFields, f => f.Exists);
+            //context.ExecuteQuery();
+
+            //if (!file.Exists)
+            //{
+            //    Console.WriteLine("❌ El path no corresponde a un archivo");
+            //    return;
+            //}
+
+            //var item = file.ListItemAllFields;
+
+            if (item == null)
+            {
+                Console.WriteLine("❌ No se encontró el elemento en las listas candidatas");
+                continue;
+            }
 
             var jsonOldItem = JsonSerializer.Serialize(item.FieldValues, jsonOptions);
 
@@ -124,24 +166,24 @@ try
             Console.WriteLine($"✅ JSON completo guardado en: {filePath}");
 
             if (it.Cambios != null)
-                    {
-                        var root = it.Cambios.RootElement;
+            {
+                var root = it.Cambios.RootElement;
 
-                        if (root.ValueKind == JsonValueKind.Array)
-                        {
-                            foreach (var cambio in root.EnumerateArray())
-                            {
-                                cambios.Procesar(item, cambio);
-                            }
-                        }
-                        else if (root.ValueKind == JsonValueKind.Object)
-                        {
-                            cambios.Procesar(item, root);
-                        }
-                        item.SystemUpdate();
+                if (root.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var cambio in root.EnumerateArray())
+                    {
+                        cambios.Procesar(item, cambio);
+                    }
+                }
+                else if (root.ValueKind == JsonValueKind.Object)
+                {
+                    cambios.Procesar(item, root);
+                }
+                item.SystemUpdate();
                 context.ExecuteQuery();
 
-                    }
+            }
             var json = JsonSerializer.Serialize(item.FieldValues, jsonOptions);
 
             var baseFolder = Path.Combine(AppContext.BaseDirectory, "searchLogs");
@@ -184,22 +226,22 @@ try
             };
 
             await logsManager.SaveLogActivosProcesados(it.Id, new[] { logActivo });
-            
+
         }
 
 
-//        await sp.UpdateListItemAsync(
-//    it.Id,
-//    new Dictionary<string, object>
-//    {
-//        { "EstadoProceso", "Finalizado" }
-//    }
-//);
-        await logsManager.SyncLogs(it.Id,  cts.Token);
+        //        await sp.UpdateListItemAsync(
+        //    it.Id,
+        //    new Dictionary<string, object>
+        //    {
+        //        { "EstadoProceso", "Finalizado" }
+        //    }
+        //);
+        await logsManager.SyncLogs(it.Id, cts.Token);
 
-        
+
     }
-  
+
 }
 catch (Exception ex)
 {
@@ -208,142 +250,153 @@ catch (Exception ex)
 }
 finally
 {
-    
+
     Console.WriteLine("Proceso finalizado con código " + Environment.ExitCode + ". Presiona una tecla para cerrar...");
     Console.ReadKey();
 }
 
 
-//ListItem finder( Guid uniqueId, Func<string, ClientContext> ctxFactory)
+ListItem FindItem(List<List> listas, Guid guid, ClientContext ctx, ref List listaProbable)
+{
+    // 1️⃣ intentar encontrar el archivo directamente
+    try
+    {
+        var file = ctx.Web.GetFileById(guid);
+        ctx.Load(file);
+        ctx.ExecuteQuery();
+
+        if (file.Exists)
+        {
+            var item = file.ListItemAllFields;
+            ctx.Load(item);
+            ctx.ExecuteQuery();
+
+            listaProbable = item.ParentList; // actualizar lista probable
+            return item;
+        }
+    }
+    catch
+    {
+        // si no existe seguimos
+    }
+
+    // 2️⃣ probar primero en la lista probable
+    if (listaProbable != null)
+    {
+        var item = BuscarEnLista(listaProbable, guid, ctx);
+        if (item != null)
+            return item;
+    }
+
+    // 3️⃣ buscar en las demás listas
+    foreach (var lista in listas)
+    {
+        ctx.Load(lista, l => l.Id);
+        ctx.ExecuteQuery();
+        if (listaProbable != null && lista.Id == listaProbable.Id)
+            continue;
+
+        var item = BuscarEnLista(lista, guid, ctx);
+
+        if (item != null)
+        {
+            listaProbable = lista; // guardar para próximas búsquedas
+            return item;
+        }
+    }
+
+    return null;
+}
+
+ListItem BuscarEnLista(List lista, Guid guid, ClientContext ctx)
+{
+    var query = new CamlQuery
+    {
+        ViewXml = $@"
+    <View Scope='RecursiveAll'>
+      <ViewFields>
+        <FieldRef Name='ID' />
+      </ViewFields>
+      <Query>
+        <Where>
+          <Eq>
+            <FieldRef Name='GUID'/>
+            <Value Type='Guid'>{guid}</Value>
+          </Eq>
+        </Where>
+      </Query>
+      <RowLimit>10</RowLimit>
+    </View>"
+    };
+
+    var items = lista.GetItems(query);
+
+    ctx.Load(items, col => col.Include(i => i.Id));
+    ctx.ExecuteQuery();
+
+    return items.Count > 0 ? items[0] : null;
+}
+
+//ListItem FindItem(List<List> listas, Guid uniqueId, ClientContext ctx, ref List listaProbable)
 //{
-//    List<List> lists;
-
-//    var candidates = lists
-//        .Where(l => !l.Hidden)
-//        .Where(l => l.BaseTemplate == 100 || l.BaseTemplate == 101) // 100=Custom List, 101=Doc Library
-//        .Where(l => l.ItemCount > 0) // opcional: acelera
-//        .ToList();
-
-//    Console.WriteLine($"Candidatas: {candidates.Count}");
-
-//    foreach (var list in candidates)
+//    var item = BuscarEnLista(listaProbable, uniqueId, ctx);
+//    if (item != null)
 //    {
-//        var caml = new CamlQuery
-//        {
-//            ViewXml = $@"
-//<View Scope='RecursiveAll'>
-//  <Query>
-//    <Where>
-//      <Eq>
-//        <FieldRef Name='UniqueId' />
-//        <Value Type='Guid'>{uniqueId}</Value>
-//      </Eq>
-//    </Where>
-//  </Query>
-//  <RowLimit>1</RowLimit>
-//</View>"
-//        };
+//        return item;
 
-//        var items = list.GetItems(caml);
+//    }
 
-//        // Cargamos campos mínimos. FileRef/Title pueden no existir en todos los casos.
-//        ctx.Load(items, it => it.Include(
-//            x => x.Id,
-//            x => x.FieldValuesAsText // útil para no pinchar por campos faltantes
-//        ));
-
-//        try
-//        {
-//            ExecuteQueryWithRetry(ctx);
-//        }
-//        catch
-//        {
-//            // Si una lista específica falla por permisos o algo raro, seguimos
+//    foreach (var lista in listas)
+//    {
+//        if (lista.Id == listaProbable.Id)
 //            continue;
-//        }
 
-//        var found = items.FirstOrDefault();
-//        if (found != null)
+//        item = BuscarEnLista(lista, uniqueId, ctx);
+//        if (item != null)
 //        {
-//            var fvat = found.FieldValuesAsText;
-//            string fileRef = TryGetText(fvat, "FileRef");
-//            string title = TryGetText(fvat, "Title");
+//            listaProbable = lista;
+//            return item;
 
-//            Console.WriteLine("ENCONTRADO");
-//            Console.WriteLine($"Lista:  {list.Title}");
-//            Console.WriteLine($"ListId: {list.Id}");
-//            Console.WriteLine($"ItemId: {found.Id}");
-//            if (!string.IsNullOrWhiteSpace(title)) Console.WriteLine($"Title:  {title}");
-//            if (!string.IsNullOrWhiteSpace(fileRef)) Console.WriteLine($"FileRef:{fileRef}");
-//            return found;
 //        }
 //    }
 
-//    Console.WriteLine("No encontrado en listas/bibliotecas candidatas.");
 //    return null;
 //}
 
-//static string TryGetText(FieldStringValues fvat, string key)
-//    => fvat.FieldValues.ContainsKey(key) ? fvat.FieldValues[key] : "";
-
-// static void ExecuteQueryWithRetry(ClientContext ctx, int maxRetries = 8)
+//ListItem BuscarEnLista(List lista, Guid uniqueId, ClientContext ctx)
 //{
-//    int delayMs = 500;
-//    for (int attempt = 1; attempt <= maxRetries; attempt++)
+//    var query = new CamlQuery
 //    {
-//        try
-//        {
-//            ctx.ExecuteQuery();
-//            return;
-//        }
-//        catch (ClientRequestException ex) when (IsThrottle(ex))
-//        {
-//            Thread.Sleep(delayMs);
-//            delayMs = Math.Min(delayMs * 2, 8000);
-//        }
-//        catch (ServerException ex) when (IsThrottle(ex))
-//        {
-//            Thread.Sleep(delayMs);
-//            delayMs = Math.Min(delayMs * 2, 8000);
-//        }
-//    }
+//        ViewXml = $@"
+//    <View Scope='RecursiveAll'>
+//        <Query>
+//            <Where>
+//                <Eq>
+//                    <FieldRef Name='id'/>
+//                    <Value Type='Guid'>{uniqueId}</Value>
+//                </Eq>
+//            </Where>
+//        </Query>
+//        <RowLimit>1</RowLimit>
+//    </View>"
+//    };
+
+//    var items = lista.GetItems(query);
+//    ctx.Load(items);
 //    ctx.ExecuteQuery();
-//}
 
-
-//static bool IsThrottle(Exception ex)
-//{
-//    var msg = ex.Message ?? "";
-//    return msg.Contains("429") ||
-//           msg.Contains("503") ||
-//           msg.Contains("Too many requests", StringComparison.OrdinalIgnoreCase) ||
-//           msg.Contains("throttle", StringComparison.OrdinalIgnoreCase);
+//    return items.Count > 0 ? items[0] : null;
 //}
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- static string Base64Encode(string plainText)
+static string Base64Encode(string plainText)
 {
     var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
     return System.Convert.ToBase64String(plainTextBytes);
 }
 
- static SecureString FetchPasswordFromConsole(string pass)
+static SecureString FetchPasswordFromConsole(string pass)
 {
     string password = pass;
     var securePassword = new SecureString();
