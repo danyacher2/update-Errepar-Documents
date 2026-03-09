@@ -26,13 +26,16 @@ var jsonOptions = new JsonSerializerOptions
     WriteIndented = true
 };
 
+
 try
 {
     Console.WriteLine("Consulta a SharePoint: recuperar items con EstadoProceso = Pendiente | En Pausa");
 
     string siteUrl = "https://erreparsa.sharepoint.com/sites/ErreparDesarrollo";
     string tenantId = "00f26ad1-2073-4746-a79f-c83061db35c0";
-    string clientId = "8688eed4-7464-4288-9820-34849fd19296";
+    //string clientId = "8688eed4-7464-4288-9820-34849fd19296";//erreparDesarrollo
+    string clientId = "f679c472-7b0c-45dc-b38c-cca0b662f77a";
+
 
     // Autenticación con certificado usando thumbprint
     // Obtén el thumbprint desde el certificado instalado en Windows (ver pasos más abajo)
@@ -92,14 +95,19 @@ try
         context.Load(list);
         listas.Add(list);
     }
-    var listaProbable = listas.FirstOrDefault(); ;
+    var listaProbable = listas.FirstOrDefault(); 
+    var activosEncontrados = new List<string>();
 
     Console.WriteLine($"Items obtenidos: {items.Count}");
-    foreach (var it in items)
-    {
+    //foreach (var it in items)
+    for (int j = 0; j < items.Count; j++)
+            {
+        var it = items[j];
         Console.WriteLine($"Id={it.Id} | Título='{it.Titulo}' | Estado='{it.EstadoProceso}' | EjecutadoPor='{it.EjecutadoPor}' | Link='{it.Link}'");
-        foreach (var activo in it.Activos)
-        {
+        //for  (var activo in it.Activos)
+        for (int i = 0; i < it.Activos.Count; i++)
+            {
+            var activo = it.Activos[i];
             //var hit = searchService.ObtenerElementoPorGuid(activo);
 
             //if (hit != null)
@@ -126,16 +134,111 @@ try
             //var file = context.Web.GetFileByServerRelativeUrl("/sites/ErreparDesarrollo/Documento/00-sin-obra/2024/20240126103422795/20240126103422795.html");
 
 
-            
+            //try
+            //{
 
-            Console.WriteLine($"LIST item: {activo}");
-            
-            var item = FindItem(listas, new Guid(activo), context, ref listaProbable);
-            Thread.Sleep(1000);
+                Console.WriteLine($"{i} --Guid item: {activo}");
 
-            Console.WriteLine($"LIST item: {listas} con el Guid {activo} y la lista probable {listaProbable}");
-            Console.WriteLine($"LIST item: {item}");
-            //listas, Guid uniqueId, ClientContext ctx, List listaProbable)
+                var item = FindItem(listas, new Guid(activo), context, ref listaProbable);
+                //var item = GetItemByUniqueId(context,new Guid(activo));
+
+
+                //GetItemByUniqueId
+                //Thread.Sleep(1000);
+
+                //Console.WriteLine($"LIST: {listas} con el Guid {activo} y la lista probable {listaProbable}");
+                Console.WriteLine($"item: {item}");
+                //listas, Guid uniqueId, ClientContext ctx, List listaProbable)
+                
+                if (item != null)
+                {
+                    activosEncontrados.Add(activo);
+                }
+                
+
+                continue;
+
+                if (item == null)
+                {
+                    Console.WriteLine("❌ No se encontró el elemento en las listas candidatas");
+                    continue;
+                }
+
+                var jsonOldItem = JsonSerializer.Serialize(item.FieldValues, jsonOptions);
+
+                var folder = Path.Combine(AppContext.BaseDirectory, "searchLogs");
+                Directory.CreateDirectory(folder);
+
+                var filePath = Path.Combine(folder, $"ListItems/SearchOriginal_{activo}.json");
+                System.IO.File.WriteAllText(filePath, jsonOldItem, Encoding.UTF8);
+                Console.WriteLine($"✅ JSON completo guardado en: {filePath}");
+
+                if (it.Cambios != null)
+                {
+                    var root = it.Cambios.RootElement;
+
+                    if (root.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var cambio in root.EnumerateArray())
+                        {
+                            cambios.Procesar(item, cambio);
+                        }
+                    }
+                    else if (root.ValueKind == JsonValueKind.Object)
+                    {
+                        cambios.Procesar(item, root);
+                    }
+                    item.SystemUpdate();
+                    context.ExecuteQuery();
+
+                }
+                var json = JsonSerializer.Serialize(item.FieldValues, jsonOptions);
+
+                var baseFolder = Path.Combine(AppContext.BaseDirectory, "searchLogs");
+                var listItemsFolder = Path.Combine(baseFolder, "ListItems");
+
+                Directory.CreateDirectory(listItemsFolder); // crea toda la estructura
+
+                var filePathNewItem = Path.Combine(listItemsFolder, $"Search_{activo}.json");
+
+                System.IO.File.WriteAllText(filePathNewItem, json, Encoding.UTF8);
+
+                Console.WriteLine($"✅ JSON completo guardado en: {filePathNewItem}");
+
+                //}
+
+                //}
+                //else
+                //{
+                //    Console.WriteLine("No se encontró el elemento");
+                //}
+
+                await logsManager.SaveLogEjecucion(it.Id, new ItemLogEjecucion
+                {
+                    ItemId = it.Id,
+                    Fecha = DateTime.Now,
+                    Mensaje = "Inicio proceso",
+                    Estado = "OK"
+                });
+
+                var logActivo = new ItemLogActivosProcesados
+                {
+                    ItemCambiosId = it.Id,
+                    ItemListId = Convert.ToInt32(item.FieldValues["ID"]),
+                    LibraryName = item.FieldValues["Title"].ToString(),
+                    TimeStamp = Convert.ToInt32(item.FieldValues["ID"]),
+                    UrlItem = item.FieldValues["FileRef"].ToString(),
+                    Activo = activo,
+                    Procesado = true,
+                    Fecha = DateTime.Now
+                };
+
+                await logsManager.SaveLogActivosProcesados(it.Id, new[] { logActivo });
+            //}
+            //catch (Exception ex)
+            //{
+            //    Console.WriteLine("Error en la busqueda del Item"+ex);
+            //}
 
             continue;
 
@@ -150,82 +253,7 @@ try
 
             //var item = file.ListItemAllFields;
 
-            if (item == null)
-            {
-                Console.WriteLine("❌ No se encontró el elemento en las listas candidatas");
-                continue;
-            }
-
-            var jsonOldItem = JsonSerializer.Serialize(item.FieldValues, jsonOptions);
-
-            var folder = Path.Combine(AppContext.BaseDirectory, "searchLogs");
-            Directory.CreateDirectory(folder);
-
-            var filePath = Path.Combine(folder, $"ListItems/SearchOriginal_{activo}.json");
-            System.IO.File.WriteAllText(filePath, jsonOldItem, Encoding.UTF8);
-            Console.WriteLine($"✅ JSON completo guardado en: {filePath}");
-
-            if (it.Cambios != null)
-            {
-                var root = it.Cambios.RootElement;
-
-                if (root.ValueKind == JsonValueKind.Array)
-                {
-                    foreach (var cambio in root.EnumerateArray())
-                    {
-                        cambios.Procesar(item, cambio);
-                    }
-                }
-                else if (root.ValueKind == JsonValueKind.Object)
-                {
-                    cambios.Procesar(item, root);
-                }
-                item.SystemUpdate();
-                context.ExecuteQuery();
-
-            }
-            var json = JsonSerializer.Serialize(item.FieldValues, jsonOptions);
-
-            var baseFolder = Path.Combine(AppContext.BaseDirectory, "searchLogs");
-            var listItemsFolder = Path.Combine(baseFolder, "ListItems");
-
-            Directory.CreateDirectory(listItemsFolder); // crea toda la estructura
-
-            var filePathNewItem = Path.Combine(listItemsFolder, $"Search_{activo}.json");
-
-            System.IO.File.WriteAllText(filePathNewItem, json, Encoding.UTF8);
-
-            Console.WriteLine($"✅ JSON completo guardado en: {filePathNewItem}");
-
-            //}
-
-            //}
-            //else
-            //{
-            //    Console.WriteLine("No se encontró el elemento");
-            //}
-
-            await logsManager.SaveLogEjecucion(it.Id, new ItemLogEjecucion
-            {
-                ItemId = it.Id,
-                Fecha = DateTime.Now,
-                Mensaje = "Inicio proceso",
-                Estado = "OK"
-            });
-
-            var logActivo = new ItemLogActivosProcesados
-            {
-                ItemCambiosId = it.Id,
-                ItemListId = Convert.ToInt32(item.FieldValues["ID"]),
-                LibraryName = item.FieldValues["Title"].ToString(),
-                TimeStamp = Convert.ToInt32(item.FieldValues["ID"]),
-                UrlItem = item.FieldValues["FileRef"].ToString(),
-                Activo = activo,
-                Procesado = true,
-                Fecha = DateTime.Now
-            };
-
-            await logsManager.SaveLogActivosProcesados(it.Id, new[] { logActivo });
+            
 
         }
 
@@ -237,10 +265,19 @@ try
         //        { "EstadoProceso", "Finalizado" }
         //    }
         //);
-        await logsManager.SyncLogs(it.Id, cts.Token);
+        //await logsManager.SyncLogs(it.Id, cts.Token);
 
 
     }
+
+    var folderActivos = Path.Combine(AppContext.BaseDirectory, "");
+    Directory.CreateDirectory(folderActivos);
+
+    var fileActivosEncontrados = Path.Combine(folderActivos, "ActivosEncontrados.txt");
+    System.IO.File.WriteAllLines(fileActivosEncontrados, activosEncontrados, Encoding.UTF8);
+    Console.WriteLine($"✅ Activos encontrados guardados en: {fileActivosEncontrados} | Cantidad: {activosEncontrados.Count}");
+    Console.WriteLine("Presiona una tecla para iniciar...");
+    Console.ReadKey();
 
 }
 catch (Exception ex)
@@ -255,48 +292,63 @@ finally
     Console.ReadKey();
 }
 
+static ListItem GetItemByUniqueId(ClientContext ctx,List listaProbable, Guid uniqueId)
+{
+        try
+        {
+            var query = new CamlQuery
+            {
+                ViewXml = $@"
+                        <View Scope='RecursiveAll'>
+                            <Query>
+                                <Where>
+                                    <Eq>
+                                        <FieldRef Name='GUID' />
+                                        <Value Type='Guid'>{uniqueId}</Value>
+                                    </Eq>
+                                </Where>
+                            </Query>
+                            <RowLimit>1</RowLimit>
+                        </View>"
+            };
+
+            var items = listaProbable.GetItems(query);
+            ctx.Load(items);
+            ctx.ExecuteQuery();
+
+            if (items.Count > 0)
+                return items[0];
+        }
+        catch
+        {
+            // ignorar listas que fallen
+        }
+    
+
+    return null;
+}
+
 
 ListItem FindItem(List<List> listas, Guid guid, ClientContext ctx, ref List listaProbable)
 {
-    // 1️⃣ intentar encontrar el archivo directamente
-    try
-    {
-        var file = ctx.Web.GetFileById(guid);
-        ctx.Load(file);
-        ctx.ExecuteQuery();
+    //if (listaProbable != null)
+    //{
+    //    Console.WriteLine("LISTA: " + listaProbable.ToString());
 
-        if (file.Exists)
-        {
-            var item = file.ListItemAllFields;
-            ctx.Load(item);
-            ctx.ExecuteQuery();
-
-            listaProbable = item.ParentList; // actualizar lista probable
-            return item;
-        }
-    }
-    catch
-    {
-        // si no existe seguimos
-    }
-
-    // 2️⃣ probar primero en la lista probable
-    if (listaProbable != null)
-    {
-        var item = BuscarEnLista(listaProbable, guid, ctx);
-        if (item != null)
-            return item;
-    }
+    //    var item = GetItemByUniqueId(ctx, listaProbable, guid);
+    //    if (item != null)
+    //        return item;
+    //}
 
     // 3️⃣ buscar en las demás listas
     foreach (var lista in listas)
     {
-        ctx.Load(lista, l => l.Id);
-        ctx.ExecuteQuery();
-        if (listaProbable != null && lista.Id == listaProbable.Id)
-            continue;
+        //ctx.Load(lista, l => l.Id);
+        //ctx.ExecuteQuery();
+        //if (listaProbable != null && lista.Id == listaProbable.Id)
+        //    continue;
 
-        var item = BuscarEnLista(lista, guid, ctx);
+        var item = GetItemByUniqueId(ctx, lista, guid);       
 
         if (item != null)
         {
@@ -336,6 +388,8 @@ ListItem BuscarEnLista(List lista, Guid guid, ClientContext ctx)
 
     return items.Count > 0 ? items[0] : null;
 }
+
+
 
 //ListItem FindItem(List<List> listas, Guid uniqueId, ClientContext ctx, ref List listaProbable)
 //{
