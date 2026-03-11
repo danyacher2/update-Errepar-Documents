@@ -1,8 +1,12 @@
-﻿using Errepar.MetadataManager.Process.Models;
+﻿using Errepar.MetadataManager.Process.Auth;
+using Errepar.MetadataManager.Process.Models;
+using Microsoft.Online.SharePoint.TenantAdministration;
+using Microsoft.SharePoint.Client;
 using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -45,8 +49,8 @@ namespace Errepar.MetadataManager.Process.Services
                 "Author/Title,Editor/Title,EstadoProceso,FechaFinalizado,FechaPendiente,LinkMetadataManager," +
                 "Modified,EjecutadoPor/Title,EjecutadoPor/Id,AttachmentFiles/ServerRelativeUrl" +
                 "&$expand=Author,Editor,AttachmentFiles,EjecutadoPor" +
-                "&$filter=(EstadoProceso eq 'Pendiente')";
-                //"&$filter=(EstadoProceso eq 'Pendiente') or (EstadoProceso eq 'En Pausa')";
+                //"&$filter=(EstadoProceso eq 'Pendiente')";
+                "&$filter=(EstadoProceso eq 'Pendiente') or (EstadoProceso eq 'En Pausa')";
             ;
              using var resp = await _http.GetAsync(endpoint, cancellationToken).ConfigureAwait(false);
              resp.EnsureSuccessStatusCode();
@@ -112,7 +116,16 @@ namespace Errepar.MetadataManager.Process.Services
         {
             var url = $"{_siteUrl}/_api/web/lists/getbytitle('{_listTitle}')/items({id})";
 
+            string tenantId = "00f26ad1-2073-4746-a79f-c83061db35c0";
+            string clientId = "f679c472-7b0c-45dc-b38c-cca0b662f77a";
+            string certificateThumbprint = Environment.GetEnvironmentVariable("CERT_THUMBPRINT")
+        ?? "452079A2697BC9646023FAE02876488654BBDB2C";
+
+            var authToken = await TokenProvider.GetSharePointTokenWithCertificateThumbprintAsync(tenantId, clientId, certificateThumbprint, _siteUrl);
+
             var request = new HttpRequestMessage(HttpMethod.Post, url);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+
             request.Headers.Add("IF-MATCH", "*");
             request.Headers.Add("X-HTTP-Method", "MERGE");
 
@@ -122,8 +135,15 @@ namespace Errepar.MetadataManager.Process.Services
 
             var response = await _http.SendAsync(request);
 
+            if (!response.IsSuccessStatusCode)
+                {
+                var error = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"SharePoint error: {response.StatusCode}");
+                Console.WriteLine(error);
+                }
+
             response.EnsureSuccessStatusCode();
-        }
+            }
         private static JsonDocument TryGetJson(JsonElement el, string fieldName)
     {
         if (!el.TryGetProperty(fieldName, out var prop))
