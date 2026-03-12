@@ -184,7 +184,7 @@ try
             }
 
 
-            
+
 
             var item = FindItem(listas, new Guid(activo), context, ref listaProbable);
             if (item == null)
@@ -263,56 +263,68 @@ try
                 //    { "eolShpFechaBusqueda", fechaFormateada }
                 //};
 
-
-                IDictionary<string, object> ItemFormateado = await solerManager.GetItemFormatSync(context, item);
-
-                foreach (JsonElement cambio in root.EnumerateArray())
+                try
                 {
-                    var campo = GetString(cambio, "campo");
+                    IDictionary<string, object> ItemFormateado = await solerManager.GetItemFormatSync(context, item);
 
-                    if (ItemFormateado.TryGetValue(campo, out var valor))
+                    foreach (JsonElement cambio in root.EnumerateArray())
                     {
-                        campos.Add(campo, valor);
+                        var campo = GetString(cambio, "campo");
+
+                        if (ItemFormateado.TryGetValue(campo, out var valor))
+                        {
+                            if (!campos.ContainsKey(campo))
+                                campos.Add(campo, valor);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"⚠ El campo '{campo}' no existe en ItemFormateado");
+                        }
                     }
-                    else
+
+                    var resultadoSolr = await solerManager.AtomicUpdateSolrMultiple(item["GUID"].ToString(), campos, item.Id);
+
+                    //if (resultadoSolr.ok)
+                    //{
+                    //    Console.WriteLine($"✔️ Solr actualizado para ID {item.Id}");
+                    //    await logsManager.SaveLogError(it.Id, new ItemLogError
+                    //    {
+                    //        ItemId = activo,
+                    //        Fecha = DateTime.Now,
+                    //        Mensaje = resultadoSolr.msg,
+                    //        Estado = "Activo modificado en Solr"
+                    //    });
+                    //}
+
+                    //else
+                    //{
+                    //    Console.WriteLine($"⚠️ Error Solr (ID {item.Id}): {resultadoSolr.msg}");
+                    //    await logsManager.SaveLogError(it.Id, new ItemLogError
+                    //    {
+                    //        ItemId = activo,
+                    //        Fecha = DateTime.Now,
+                    //        Mensaje = resultadoSolr.msg,
+                    //        Estado = "Activo no encontrado en Solr"
+                    //    });
+                    //    //Guardar en log que no se encontro 
+                    //}
+
+                    try
                     {
-                        Console.WriteLine($"⚠ El campo '{campo}' no existe en ItemFormateado");
+                        //Milvus 
+                        //string json = JsonConvert.SerializeObject(col, Newtonsoft.Json.Formatting.Indented);
+                        //
                     }
+                    catch (Exception ex)
+                    {
+                        //no se pudo grabar en milvus
+                    }
+
                 }
-
-                //var resultadoSolr = await solerManager.AtomicUpdateSolrMultiple(item["GUID"].ToString(), campos, item.Id);
-
-                //if (resultadoSolr.ok)
-                //{
-                //    Console.WriteLine($"✔️ Solr actualizado para ID {item.Id}");
-                //    await logsManager.SaveLogError(it.Id, new ItemLogError
-                //    {
-                //        ItemId = activo,
-                //        Fecha = DateTime.Now,
-                //        Mensaje = resultadoSolr.msg,
-                //        Estado = "Activo modificado en Solr"
-                //    });
-                //}
-
-                //else
-                //{
-                //    Console.WriteLine($"⚠️ Error Solr (ID {item.Id}): {resultadoSolr.msg}");
-                //    await logsManager.SaveLogError(it.Id, new ItemLogError
-                //    {
-                //        ItemId = activo,
-                //        Fecha = DateTime.Now,
-                //        Mensaje = resultadoSolr.msg,
-                //        Estado = "Activo no encontrado en Solr"
-                //    });
-                //    //Guardar en log que no se encontro 
-                //}
-
-
-                //Milvus 
-                //string json = JsonConvert.SerializeObject(col, Newtonsoft.Json.Formatting.Indented);
-                //
-
-
+                catch (Exception ex)
+                {
+                    //no se pudo grabar en soler
+                }
 
 
             }
@@ -438,7 +450,7 @@ static ListItem GetItemByUniqueId(ClientContext ctx, List listaProbable, Guid un
             var item = items[0];
 
             //ctx.Load(item, i => i.ContentType, i => i.ParentList );
-            ctx.Load(item, i => i.ContentType, i => i.ParentList, i => i.ParentList.Fields);
+            ctx.Load(item, i => i.ContentType, i => i.ParentList, i => i.ParentList.Fields, i => i["eolShpTema"], i => i["eolShpCodigoMislibros"]);
             ctx.ExecuteQuery();
             return item;
         }

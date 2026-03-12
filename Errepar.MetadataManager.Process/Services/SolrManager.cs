@@ -178,42 +178,65 @@ namespace Errepar.MetadataManager.Process.Services
                                 col[field.InternalName] = _taxonomyValue.Label;
                             }
                         }
-                    else if (field.TypeDisplayName.ToLower().Equals("número")) //DateTime
+                    else if (field.TypeDisplayName.ToLower().Equals("búsqueda"))
+                    {
+                        if (field.TypeAsString.Equals("LookupMulti"))
                         {
-                        try
+                            List<string> values = new List<string>();
+                            FieldLookupValue[] _lookupValueArr = item[field.InternalName] as FieldLookupValue[];
+                            if (_lookupValueArr != null)
                             {
+                                foreach (var _lookupValue in _lookupValueArr)
+                                {
+                                    if (_lookupValue != null && !string.IsNullOrEmpty(_lookupValue.LookupValue))
+                                        values.Add(_lookupValue.LookupValue);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            FieldLookupValue _lookupValue = item[field.InternalName] as FieldLookupValue;
+
+                            if (_lookupValue != null)
+                                col[field.InternalName] = _lookupValue.LookupValue;
+                        }
+                    }
+                    else if (field.TypeDisplayName.ToLower().Equals("número")) //DateTime
+                    {
+                        try
+                        {
                             if (field.InternalName.Equals("eolShpOrden"))
                                 col[field.InternalName] = Convert.ToInt32(item[field.InternalName]);
                             else
                                 col[field.InternalName] = Convert.ToInt32(item[field.InternalName]);
-                            }
-                        catch (Exception)
-                            {
-                            col[field.InternalName] = item[field.InternalName];
-                            }
                         }
-                    else if (field.TypeDisplayName.ToLower().Equals("fecha y hora"))
+                        catch (Exception)
                         {
+                            col[field.InternalName] = item[field.InternalName];
+                        }
+                    }
+                    else if (field.TypeDisplayName.ToLower().Equals("fecha y hora"))
+                    {
                         if (item.ContentType.Name.Equals("Legislacion"))
-                            {
+                        {
                             if (field.InternalName.Equals("eolShpFecha") && item[field.InternalName] != string.Empty)
                                 col["eolShpFechaBusqueda"] = item[field.InternalName];
 
                             if (!field.InternalName.Equals("eolShpFechaBusqueda"))
                                 col[field.InternalName] = item[field.InternalName];
-                            }
+                        }
                         else
                             col[field.InternalName] = item[field.InternalName];
-                        }
+                    }
                     else
-                        {
+                    {
                         if (field.InternalName.StartsWith("Sumario_x0020_"))
-                            {
+                        {
                             col[field.InternalName.Replace("Sumario_x0020_", "eolShpResumen")] = item[field.InternalName];
-                            }
+                        }
                         else
                             col[field.InternalName] = item[field.InternalName];
-                        }
+                    }
 
                     }
                 }
@@ -221,19 +244,20 @@ namespace Errepar.MetadataManager.Process.Services
             col["eolShpID"] = item.Id;
             col["ModerationStatus"] = "Approved";
             //col["searchable"] = "1";
-            col["eolShpTipoContenido"] = item.ContentType.Name;
+            //col["eolShpTipoContenido"] = item.ContentType.Name;
 
+            if (item.File != null)
+            {
+                ctx.Load(item.File);
+                var binaryStream = item.File.OpenBinaryStream();
+                ctx.ExecuteQuery();
 
-            ctx.Load(item.File);
-            var binaryStream = item.File.OpenBinaryStream();
-            ctx.ExecuteQuery();
-
-            using (var sr = new System.IO.StreamReader(binaryStream.Value))
+                using (var sr = new System.IO.StreamReader(binaryStream.Value))
                 {
-                var line = sr.ReadToEnd();
-                col["eolShpBody"] = line;
+                    var line = sr.ReadToEnd();
+                    col["eolShpBody"] = line;
                 }
-
+            }
 
             return col;
             }
