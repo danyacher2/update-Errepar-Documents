@@ -88,93 +88,17 @@ try
     var webServerRelative = context.Web.ServerRelativeUrl;
     Console.WriteLine("ServerRelativeUrl del sitio: " + webServerRelative);
 
-    var list = context.Web.Lists.GetByTitle("Manage Metadata Schedule");
-
-    var query = new CamlQuery
-    {
-        ViewXml = "<View></View>"
-    };
-
-    var scheduleItems = list.GetItems(query);
-
-    context.Load(scheduleItems);
-    context.ExecuteQuery();
-
-    var allow = new List<WeeklyWindow>();
-    var deny = new List<WeeklyWindow>();
-
-    foreach (var scheduleItem in scheduleItems)
-    {
-        var day = Enum.Parse<DayOfWeek>(scheduleItem["day"].ToString());
-
-        var startValue = scheduleItem["startTime"];
-        var endValue = scheduleItem["endTime"];
-        var type = scheduleItem["allow"]?.ToString();
-
-        if (startValue is string startText && endValue is string endText)
-        {
-            var start = TimeOnly.Parse(startText);
-            var end = TimeOnly.Parse(endText);
-
-            var window = new WeeklyWindow(day, start, end);
-
-            if (type == "Allow")
-                allow.Add(window);
-            else if (type == "Deny")
-                deny.Add(window);
-        }
-        else if (startValue is string[] startArray && endValue is string[] endArray)
-        {
-            var starts = startArray
-                .Select(TimeOnly.Parse)
-                .OrderBy(t => t)
-                .ToList();
-
-            var ends = endArray
-                .Select(TimeOnly.Parse)
-                .OrderBy(t => t)
-                .ToList();
-
-            for (int i = 0; i < Math.Min(starts.Count, ends.Count); i++)
-            {
-                var start = starts[i];
-                var end = ends[i];
-
-                if (end <= start)
-                {
-                    Console.WriteLine($"⚠ intervalo inválido {start} - {end}");
-                    continue;
-                }
-
-                var window = new WeeklyWindow(day, start, end);
-
-                if (type == "Allow")
-                {
-                    Console.WriteLine($"Allow {start} - {end}");
-
-                    allow.Add(window);
-                }
-                else if (type == "Deny")
-                {
-                    Console.WriteLine($"Deny {start} - {end}");
-
-                    deny.Add(window);
-                }
-            }
-        }
-
-    }
+    var (allow, deny, rulesCount) = ScheduleGate.LoadWindows(context, "Manage Metadata Schedule");
 
     await logsManager.SaveLogEjecucion(0, new ItemLogEjecucion
     {
         ItemId = 0,
         Fecha = DateTime.Now,
-        Mensaje = $"Reglas de Schedule cargadas: {scheduleItems.Count}",
+        Mensaje = $"Reglas de Schedule cargadas: {rulesCount}",
         Estado = "OK"
     });
 
     var EstadoProceso = "Procesando";
-    int CantidadProcesdos = 0;
 
     var libraryNames = new List<string>
 {
@@ -205,6 +129,7 @@ try
 
     for (int j = 0; j < items.Count; j++)
     {
+        int CantidadProcesdos = 0;
         var it = items[j];
         Console.WriteLine($"Id={it.Id} | Título='{it.Titulo}' | Estado='{it.EstadoProceso}' | EjecutadoPor='{it.EjecutadoPor}' | Link='{it.Link}'");
         for (int i = 0; i < it.Activos.Count; i++)
@@ -235,10 +160,7 @@ try
                     Estado = "En Pausa"
                 });
 
-                while (!ScheduleGate.IsAllowed(DateTimeOffset.Now, allow, deny))
-                {
-                    await Task.Delay(TimeSpan.FromMinutes(1));
-                }
+                await ScheduleGate.WaitUntilAllowedAsync(allow, deny, TimeSpan.FromMinutes(1), cts.Token);
 
                 EstadoProceso = "Procesando";
 
@@ -262,14 +184,29 @@ try
             }
 
 
-            Console.WriteLine($"{i} --Guid item: {activo}");
+            
 
             var item = FindItem(listas, new Guid(activo), context, ref listaProbable);
+            if (item == null)
+                continue;
 
-            if (item.ContentType.Name.ToLower() == "carpeta")
+            if (string.Equals(item.ContentType?.Name, "carpeta", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
+
+            var fileName = item["FileLeafRef"]?.ToString();
+
+            if (fileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                fileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                fileName.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+                fileName.EndsWith(".gif", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            Console.WriteLine($"{i} --Guid item: {activo}");
+
 
 
             Console.WriteLine($"item: {item}");
@@ -331,39 +268,44 @@ try
 
                 foreach (JsonElement cambio in root.EnumerateArray())
                 {
-
                     var campo = GetString(cambio, "campo");
-                    campos.Add(campo, ItemFormateado[campo]);
 
-
-                }
-
-                var resultadoSolr = await solerManager.AtomicUpdateSolrMultiple(item["GUID"].ToString(), campos, item.Id);
-
-                if (resultadoSolr.ok)
-                {
-                    Console.WriteLine($"✔️ Solr actualizado para ID {item.Id}");
-                    await logsManager.SaveLogError(it.Id, new ItemLogError
+                    if (ItemFormateado.TryGetValue(campo, out var valor))
                     {
-                        ItemId = activo,
-                        Fecha = DateTime.Now,
-                        Mensaje = resultadoSolr.msg,
-                        Estado = "Activo modificado en Solr"
-                    });
-                }
-                    
-                else
-                {
-                    Console.WriteLine($"⚠️ Error Solr (ID {item.Id}): {resultadoSolr.msg}");
-                    await logsManager.SaveLogError(it.Id, new ItemLogError
+                        campos.Add(campo, valor);
+                    }
+                    else
                     {
-                        ItemId = activo,
-                        Fecha = DateTime.Now,
-                        Mensaje = resultadoSolr.msg,
-                        Estado = "Activo no encontrado en Solr"
-                    });
-                    //Guardar en log que no se encontro 
+                        Console.WriteLine($"⚠ El campo '{campo}' no existe en ItemFormateado");
+                    }
                 }
+
+                //var resultadoSolr = await solerManager.AtomicUpdateSolrMultiple(item["GUID"].ToString(), campos, item.Id);
+
+                //if (resultadoSolr.ok)
+                //{
+                //    Console.WriteLine($"✔️ Solr actualizado para ID {item.Id}");
+                //    await logsManager.SaveLogError(it.Id, new ItemLogError
+                //    {
+                //        ItemId = activo,
+                //        Fecha = DateTime.Now,
+                //        Mensaje = resultadoSolr.msg,
+                //        Estado = "Activo modificado en Solr"
+                //    });
+                //}
+
+                //else
+                //{
+                //    Console.WriteLine($"⚠️ Error Solr (ID {item.Id}): {resultadoSolr.msg}");
+                //    await logsManager.SaveLogError(it.Id, new ItemLogError
+                //    {
+                //        ItemId = activo,
+                //        Fecha = DateTime.Now,
+                //        Mensaje = resultadoSolr.msg,
+                //        Estado = "Activo no encontrado en Solr"
+                //    });
+                //    //Guardar en log que no se encontro 
+                //}
 
 
                 //Milvus 
@@ -446,15 +388,6 @@ try
         await logsManager.SyncLogs(it.Id, cts.Token);
 
     }
-
-    //var folderActivos = Path.Combine(AppContext.BaseDirectory, "");
-    //Directory.CreateDirectory(folderActivos);
-
-    //var fileActivosEncontrados = Path.Combine(folderActivos, "ActivosEncontrados.txt");
-    //System.IO.File.WriteAllLines(fileActivosEncontrados, activosEncontrados, Encoding.UTF8);
-    //Console.WriteLine($"✅ Activos encontrados guardados en: {fileActivosEncontrados} | Cantidad: {activosEncontrados.Count}");
-    //Console.WriteLine("Presiona una tecla para iniciar...");
-    //Console.ReadKey();
 
     await logsManager.SaveLogEjecucion(0, new ItemLogEjecucion
     {
