@@ -18,6 +18,11 @@ using System.Threading.Tasks;
 using System.Xml;
 using static System.Net.WebRequestMethods;
 
+// Configuración global para resolver problemas de DNS con VPN
+ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
+ServicePointManager.DnsRefreshTimeout = 0; // Forzar resolución DNS en cada intento
+ServicePointManager.EnableDnsRoundRobin = true;
+
 var jsonOptions = new JsonSerializerOptions
 {
     WriteIndented = true
