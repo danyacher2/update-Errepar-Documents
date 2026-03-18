@@ -1,4 +1,4 @@
-using Microsoft.SharePoint.Client;
+﻿using Microsoft.SharePoint.Client;
 using Microsoft.SharePoint.Client.Taxonomy;
 using System;
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ using Newtonsoft.Json;
 
 namespace Errepar.MetadataManager.Process.Services
     {
-    // Esqueleto de cliente para Solr. Ajusta URL y esquema de campos seg�n tu core/index.
+    // Esqueleto de cliente para Solr. Ajusta URL y esquema de campos según tu core/index.
     public class SolrManager
         {
         private readonly HttpClient _http;
@@ -30,7 +30,10 @@ namespace Errepar.MetadataManager.Process.Services
 
         public async Task<(bool ok, string msg)> AtomicUpdateSolrMultiple(string guid, Dictionary<string, object> campos, int idElemento)
             {
-            // Armamos el bloque din�mico para cada campo con su tipo correcto
+            const int maxIntentos = 3;
+            const int delayEntreIntentos = 3000; // 2 segundos
+
+            // Armamos el bloque dinámico para cada campo con su tipo correcto
             var updates = string.Join(",\n", campos.Select(kv =>
             {
                 string valorFormateado;
@@ -65,9 +68,55 @@ namespace Errepar.MetadataManager.Process.Services
              }}
          ]";
 
+            // Política de reintentos
+            int intentoActual = 0;
+            (bool ok, string msg) resultado = (false, string.Empty);
 
-            return await EnviarASolr(jsonPayload, idElemento, _ambiente);
+            while (intentoActual < maxIntentos)
+            {
+                intentoActual++;
+
+                try
+                {
+                    Console.WriteLine($"🔄 SolrManager - Intento {intentoActual}/{maxIntentos} para elemento {idElemento}");
+
+                    resultado = await EnviarASolr(jsonPayload, idElemento, _ambiente);
+                    await Task.Delay(30);
+
+                    if (resultado.ok)
+                    {
+                        if (intentoActual > 1)
+                        {
+                            Console.WriteLine($"✔️ Solr exitoso en intento {intentoActual}/{maxIntentos} para elemento {idElemento}");
+                        }
+                        return resultado;
+                    }
+
+                    Console.WriteLine($"⚠️ SolrManager - Error en intento {intentoActual}/{maxIntentos}: {resultado.msg}");
+
+                    if (intentoActual < maxIntentos)
+                    {
+                        await Task.Delay(delayEntreIntentos);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️ SolrManager - Excepción en intento {intentoActual}/{maxIntentos}: {ex.Message}");
+                    Console.WriteLine($"⚠️ SolrManager - Excepción en intento {intentoActual}/{maxIntentos}: {ex}");
+
+                    if (intentoActual >= maxIntentos)
+                    {
+                        return (false, $"Excepción después de {maxIntentos} intentos: {ex.Message}");
+                    }
+
+                    await Task.Delay(delayEntreIntentos);
+                }
             }
+            Console.WriteLine($" {resultado}");
+
+            return (false, $"Falló después de {maxIntentos} intentos. Último error: {resultado.msg}");
+        }
+
         private async Task<(bool ok, string msg)> EnviarASolr(string json, int id, string ambiente)
             {
             //string user = "Basic " +  Base64Encode("uat-solr-acess:SXtuCde9&JW%pkAK");
@@ -79,20 +128,20 @@ namespace Errepar.MetadataManager.Process.Services
 
             //string urlSolr = "https://solr.errepar.com/solr/prodActivos02/update?commit=true";
 
-            var httpRequestMessage = new HttpRequestMessage
-                {
+            // Crear un NUEVO HttpRequestMessage en cada llamada (no reutilizar)
+            using var httpRequestMessage = new HttpRequestMessage
+            {
                 Method = HttpMethod.Post,
                 RequestUri = new Uri(urlSolr),
-                Headers = {
-             { HttpRequestHeader.ContentType.ToString(), "application/json" },
-             { HttpRequestHeader.Authorization.ToString(), user }
-         },
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
-                };
+                Content = new StringContent(json, Encoding.UTF8, "application/json"),
+                            };
 
-            var response2 = _http.SendAsync(httpRequestMessage).Result;
+            httpRequestMessage.Headers.Add("Authorization", user);
 
-            if (response2.StatusCode == HttpStatusCode.OK)
+            // IMPORTANTE: Usar await en lugar de .Result para evitar deadlocks
+            using var response = await _http.SendAsync(httpRequestMessage);
+
+            if (response.StatusCode == HttpStatusCode.OK)
                 {
                 //GrabarReporte(String.Format("Activo {0} migrado | Hora: {1} - {2}", id, DateTime.Now.ToShortDateString(), DateTime.Now.ToShortTimeString()), "C:\\Users\\gonzalo.sanchez\\source\\repos\\Errepar.Alpha.MigradorMasivo\\Logs\\DocumentosProcesados-" + _nombreBiblioteca + _ambiente + ".txt");
                 Console.WriteLine("Activo " + id + " migrado a SOLR");
@@ -100,15 +149,18 @@ namespace Errepar.MetadataManager.Process.Services
                 //Console.WriteLine("Enviando a Milvus..." + json);
 
                 //  EnviarAMilvus(json, id);
-                }
+            }
             else
                 {
+
                 //GrabarReporte(String.Format("Activo {0} fallo SOLR| Hora: {1} - {2} | Error: {3}", id, DateTime.Now.ToShortDateString(), DateTime.Now.ToShortTimeString(), response2.ReasonPhrase), "C:\\Users\\gonzalo.sanchez\\source\\repos\\Errepar.Alpha.MigradorMasivo\\Logs\\DocumentosError-" + _nombreBiblioteca + _ambiente + "2.txt");
                 //Console.WriteLine("SOLR - ERROR en activo " + id);
-                var reason = response2.ReasonPhrase ?? "";
+                var reason = response.ReasonPhrase ?? "";
+                var responseBody = await response.Content.ReadAsStringAsync();
                 Console.WriteLine("SOLR - ERROR en activo " + id + " | " + reason);
-                return (false, $"{(int)response2.StatusCode} {reason}");
-                }
+                Console.WriteLine($"Response body: {responseBody}");
+                return (false, $"{(int)response.StatusCode} {reason}");                        
+            }
             }
 
         public static string Base64Encode(string plainText)
@@ -146,12 +198,12 @@ namespace Errepar.MetadataManager.Process.Services
 
                                 if (field.InternalName.Equals("eolShpIndiceContenidosEOL"))
                                     {
-                                    string guid = await getFullPathIds(_taxonomyValue.TermGuid, "�ndice de Contenidos");
+                                    string guid = await getFullPathIds(_taxonomyValue.TermGuid, "Índice de Contenidos");
                                     valuesGUID.Add(guid);
                                     }
                                 else if (field.InternalName.Equals("eolShpIndiceContenidosIUS"))
                                     {
-                                    string guid = await getFullPathIds(_taxonomyValue.TermGuid, "�ndice de Contenidos IUS");
+                                    string guid = await getFullPathIds(_taxonomyValue.TermGuid, "Índice de Contenidos IUS");
                                     valuesGUID.Add(guid);
                                     }
 
@@ -178,7 +230,7 @@ namespace Errepar.MetadataManager.Process.Services
                                 col[field.InternalName] = _taxonomyValue.Label;
                             }
                         }
-                    else if (field.TypeDisplayName.ToLower().Equals("b�squeda"))
+                    else if (field.TypeDisplayName.ToLower().Equals("búsqueda"))
                     {
                         if (field.TypeAsString.Equals("LookupMulti"))
                         {
@@ -201,7 +253,7 @@ namespace Errepar.MetadataManager.Process.Services
                                 col[field.InternalName] = _lookupValue.LookupValue;
                         }
                     }
-                    else if (field.TypeDisplayName.ToLower().Equals("n�mero")) //DateTime
+                    else if (field.TypeDisplayName.ToLower().Equals("número")) //DateTime
                     {
                         try
                         {
@@ -242,6 +294,7 @@ namespace Errepar.MetadataManager.Process.Services
                 }
 
             col["eolShpID"] = item.Id;
+            //col["idd"] = "b05491dc-08b5-41b6-84b3-3d99701fb381";
             col["ModerationStatus"] = "Approved";
             //col["searchable"] = "1";
             //col["eolShpTipoContenido"] = item.ContentType.Name;

@@ -102,7 +102,7 @@ namespace Errepar.MetadataManager.Process.Services
                 it.Titulo = TryGetString(el, "Title", "Titulo");
                 it.CreadoPor = TryGetNestedUser(el, "Author", "CreatedBy");
                 it.ModificadoPor = TryGetNestedUser(el, "Editor", "ModifiedBy");
-                it.Scope = TryGetNestedUser(el, "Scope", "Scope");
+                it.Scope = TryGetString(el, "Scope", "Scope");
                 it.Adjuntos = TryGetAttachments(el, "AttachmentFiles");
                 it.Activos = (await TryGetActivosAsync(_http, _siteUrl, _listTitle, it.Id, it.Adjuntos, cancellationToken)).ToList();
 
@@ -121,10 +121,10 @@ namespace Errepar.MetadataManager.Process.Services
             string certificateThumbprint = Environment.GetEnvironmentVariable("CERT_THUMBPRINT")
         ?? "452079A2697BC9646023FAE02876488654BBDB2C";
 
-            var authToken = await TokenProvider.GetSharePointTokenWithCertificateThumbprintAsync(tenantId, clientId, certificateThumbprint, _siteUrl);
+            //var authToken = await TokenProvider.GetSharePointTokenWithCertificateThumbprintAsync(tenantId, clientId, certificateThumbprint, _siteUrl);
 
             var request = new HttpRequestMessage(HttpMethod.Post, url);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+            //request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
 
             request.Headers.Add("IF-MATCH", "*");
             request.Headers.Add("X-HTTP-Method", "MERGE");
@@ -143,6 +143,22 @@ namespace Errepar.MetadataManager.Process.Services
                 }
 
             response.EnsureSuccessStatusCode();
+            }
+
+        public Task UpdateEstadoProcesoAsync(int itemId, string estado)
+            {
+            return UpdateListItemAsync(itemId, new Dictionary<string, object>
+                {
+                    { "EstadoProceso", estado }
+                });
+            }
+
+        public Task UpdateCantActivosAsync(int itemId, int cantidad)
+            {
+            return UpdateListItemAsync(itemId, new Dictionary<string, object>
+                {
+                    { "CantActivosProcesados", cantidad }
+                });
             }
         private static JsonDocument TryGetJson(JsonElement el, string fieldName)
     {

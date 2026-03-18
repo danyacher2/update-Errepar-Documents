@@ -4,6 +4,7 @@ using Errepar.MetadataManager.Process.Services;
 using Microsoft.SharePoint.Client;
 using Microsoft.SharePoint.Client.Search.Query;
 using Microsoft.SharePoint.News.DataModel;
+using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Linq;
@@ -18,11 +19,6 @@ using System.Threading.Tasks;
 using System.Xml;
 using static System.Net.WebRequestMethods;
 
-// Configuración global para resolver problemas de DNS con VPN
-ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
-ServicePointManager.DnsRefreshTimeout = 0; // Forzar resolución DNS en cada intento
-ServicePointManager.EnableDnsRoundRobin = true;
-
 var jsonOptions = new JsonSerializerOptions
 {
     WriteIndented = true
@@ -33,23 +29,36 @@ try
 {
     Console.WriteLine("Consulta a SharePoint: recuperar items con EstadoProceso = Pendiente | En Pausa");
 
-
     string siteUrl = "https://erreparsa.sharepoint.com/sites/ErreparDesarrollo";
     string tenantId = "00f26ad1-2073-4746-a79f-c83061db35c0";
     //string clientId = "8688eed4-7464-4288-9820-34849fd19296";//erreparDesarrollo
-    string clientId = "f679c472-7b0c-45dc-b38c-cca0b662f77a";
-
+    string clientId = "f679c472-7b0c-45dc-b38c-cca0b662f77a";//erreparDev
 
     string certificateThumbprint = Environment.GetEnvironmentVariable("CERT_THUMBPRINT")
         ?? "452079A2697BC9646023FAE02876488654BBDB2C";
     var authToken = await TokenProvider.GetSharePointTokenWithCertificateThumbprintAsync(tenantId, clientId, certificateThumbprint, siteUrl);
-    using var http = new HttpClient();
+
+    // Configurar HttpClientHandler para aceptar certificados SSL y manejar problemas DNS (necesario para UAT/VPN)
+    var socketHandler = new SocketsHttpHandler
+    {
+        SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+        {
+            RemoteCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true,
+            EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13,
+            CertificateRevocationCheckMode = System.Security.Cryptography.X509Certificates.X509RevocationMode.NoCheck
+        },
+        UseProxy = false,
+        PooledConnectionLifetime = TimeSpan.FromMinutes(5),
+        MaxConnectionsPerServer = 20,
+        ConnectTimeout = TimeSpan.FromSeconds(30)
+    };
+
+    using var http = new HttpClient(socketHandler);
     http.Timeout = TimeSpan.FromMinutes(10);
 
     var context = new ClientContext(siteUrl);
 
     var solerManager = new SolrManager(http, siteUrl, "UAT");
-
 
     context.ExecutingWebRequest += (sender, e) =>
     {
@@ -58,14 +67,7 @@ try
 
     var logsManager = new LogsManager(http, siteUrl, "Metadata Manager");
 
-
-    await logsManager.SaveLogEjecucion(0, new ItemLogEjecucion
-    {
-        ItemId = 0,
-        Fecha = DateTime.Now,
-        Mensaje = "Inicio del proceso Metadata Manager",
-        Estado = "Inicio"
-    });
+    await logsManager.LogEjecucionAsync(0, "Inicio del proceso Metadata Manager", "Inicio");
 
     var searchService = new SearchService(context);
 
@@ -75,15 +77,7 @@ try
     using var cts = new CancellationTokenSource(TimeSpan.FromHours(10));
 
     var items = await sp.GetPendingOrPausedAsync(cts.Token).ConfigureAwait(false);
-    await logsManager.SaveLogEjecucion(0, new ItemLogEjecucion
-    {
-        ItemId = 0,
-        Fecha = DateTime.Now,
-        Mensaje = $"Items recuperados desde SharePoint: {items.Count}",
-        Estado = "OK"
-    });
-
-
+    await logsManager.LogEjecucionAsync(0, $"Items recuperados desde SharePoint: {items.Count}", "OK");
 
     var cambios = new ProcesarCambios(http, context, siteUrl, logsManager, searchService);
 
@@ -95,39 +89,11 @@ try
 
     var (allow, deny, rulesCount) = ScheduleGate.LoadWindows(context, "Manage Metadata Schedule");
 
-    await logsManager.SaveLogEjecucion(0, new ItemLogEjecucion
-    {
-        ItemId = 0,
-        Fecha = DateTime.Now,
-        Mensaje = $"Reglas de Schedule cargadas: {rulesCount}",
-        Estado = "OK"
-    });
+    await logsManager.LogEjecucionAsync(0, $"Reglas de Schedule cargadas: {rulesCount}", "OK");
 
     var EstadoProceso = "Procesando";
 
-    var libraryNames = new List<string>
-{
-    "Documento",
-    "Agenda",
-    "Doctrina",
-    "Guía Temática",
-    "Jurisprudencia Adm",
-    "Jurisprudencia Judicial",
-    "Legislación",
-    "Modelo",
-    "Actualidad",
-    "Videos",
-    "Podcast"
-};
-    var listas = new List<List>();
-
-    foreach (var name in libraryNames)
-    {
-        var listName = context.Web.Lists.GetByTitle(name);
-        context.Load(listName);
-        listas.Add(listName);
-    }
-    var listaProbable = listas.FirstOrDefault();
+    var (listas, listaProbable) = CargarBibliotecasSharePoint(context);
     var activosEncontrados = new List<string>();
 
     Console.WriteLine($"Items obtenidos: {items.Count}");
@@ -140,56 +106,13 @@ try
         for (int i = 0; i < it.Activos.Count; i++)
         {
             var activo = it.Activos[i];
-            //try
-            //{
-            if (!ScheduleGate.IsAllowed(DateTimeOffset.Now, allow, deny))
-            {
-                if (EstadoProceso != "En Pausa")
-                {
-                    EstadoProceso = "En Pausa";
 
-                    await sp.UpdateListItemAsync(
-                        it.Id,
-                        new Dictionary<string, object>
-                        {
-                { "EstadoProceso", "En Pausa" }
-                        });
-                }
-                Console.WriteLine("Proceso en Pausa");
-
-                await logsManager.SaveLogEjecucion(it.Id, new ItemLogEjecucion
-                {
-                    ItemId = it.Id,
-                    Fecha = DateTime.Now,
-                    Mensaje = "Proceso en Pausa",
-                    Estado = "En Pausa"
-                });
-
-                await ScheduleGate.WaitUntilAllowedAsync(allow, deny, TimeSpan.FromMinutes(1), cts.Token);
-
-                EstadoProceso = "Procesando";
-
-                await sp.UpdateListItemAsync(
-                    it.Id,
-                    new Dictionary<string, object>
-                    {
-            { "EstadoProceso", "Procesando" }
-                                 });
-
-                await logsManager.SaveLogEjecucion(it.Id, new ItemLogEjecucion
-                {
-                    ItemId = it.Id,
-                    Fecha = DateTime.Now,
-                    Mensaje = "El Procesndo",
-                    Estado = "Procesando"
-                });
-
-                Console.WriteLine("Proceso Procesando");
-
-            }
+            var procesarEnShpSolrMilvus = it.Scope;
 
 
+            Console.WriteLine($"{i} --Guid item: {activo}");
 
+            EstadoProceso = await ManejarPausaPorSchedule(EstadoProceso, it.Id, allow, deny, sp, logsManager, cts.Token);
 
             var item = FindItem(listas, new Guid(activo), context, ref listaProbable);
             if (item == null)
@@ -212,8 +135,6 @@ try
 
             Console.WriteLine($"{i} --Guid item: {activo}");
 
-
-
             Console.WriteLine($"item: {item}");
             if (item != null)
             {
@@ -222,24 +143,11 @@ try
             if (item == null)
             {
                 Console.WriteLine("❌ No se encontró el elemento en las listas candidatas");
-                await logsManager.SaveLogError(it.Id, new ItemLogError
-                {
-                    ItemId = activo,
-                    Fecha = DateTime.Now,
-                    Mensaje = $"Item con guid {activo} no se encontro",
-                    Estado = "No Encontrado"
-                });
+                await logsManager.LogErrorAsync(it.Id, activo, $"Item con guid {activo} no se encontro", "No Encontrado");
                 continue;
             }
 
-            var jsonOldItem = JsonSerializer.Serialize(item.FieldValues, jsonOptions);
-
-            var folder = Path.Combine(AppContext.BaseDirectory, "searchLogs");
-            Directory.CreateDirectory(folder);
-
-            var filePath = Path.Combine(folder, $"ListItems/SearchOriginal_{activo}.json");
-            System.IO.File.WriteAllText(filePath, jsonOldItem, Encoding.UTF8);
-            Console.WriteLine($"✅ JSON completo guardado en: {filePath}");
+            await logsManager.SaveItemOriginalJsonAsync(activo, item.FieldValues);
 
             if (it.Cambios != null)
             {
@@ -259,101 +167,25 @@ try
                 item.SystemUpdate();
                 context.ExecuteQuery();
 
-
-                //Soler
-                //tengo que armar 
-                var campos = new Dictionary<string, object>();
-                //{
-                //    { "eolShpTimeStamp", timestamp },
-                //    { "eolShpFechaBusqueda", fechaFormateada }
-                //};
-
-                try
+                if (procesarEnShpSolrMilvus.Contains("Soler"))
                 {
-                    IDictionary<string, object> ItemFormateado = await solerManager.GetItemFormatSync(context, item);
-
-                    foreach (JsonElement cambio in root.EnumerateArray())
-                    {
-                        var campo = GetString(cambio, "campo");
-
-                        if (ItemFormateado.TryGetValue(campo, out var valor))
-                        {
-                            if (!campos.ContainsKey(campo))
-                                campos.Add(campo, valor);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"⚠ El campo '{campo}' no existe en ItemFormateado");
-                        }
-                    }
-
-                    var resultadoSolr = await solerManager.AtomicUpdateSolrMultiple(item["GUID"].ToString(), campos, item.Id);
-
-                    //if (resultadoSolr.ok)
-                    //{
-                    //    Console.WriteLine($"✔️ Solr actualizado para ID {item.Id}");
-                    //    await logsManager.SaveLogError(it.Id, new ItemLogError
-                    //    {
-                    //        ItemId = activo,
-                    //        Fecha = DateTime.Now,
-                    //        Mensaje = resultadoSolr.msg,
-                    //        Estado = "Activo modificado en Solr"
-                    //    });
-                    //}
-
-                    //else
-                    //{
-                    //    Console.WriteLine($"⚠️ Error Solr (ID {item.Id}): {resultadoSolr.msg}");
-                    //    await logsManager.SaveLogError(it.Id, new ItemLogError
-                    //    {
-                    //        ItemId = activo,
-                    //        Fecha = DateTime.Now,
-                    //        Mensaje = resultadoSolr.msg,
-                    //        Estado = "Activo no encontrado en Solr"
-                    //    });
-                    //    //Guardar en log que no se encontro 
-                    //}
-
-                    try
-                    {
-                        //Milvus 
-                        //string json = JsonConvert.SerializeObject(col, Newtonsoft.Json.Formatting.Indented);
-                        //
-                    }
-                    catch (Exception ex)
-                    {
-                        //no se pudo grabar en milvus
-                    }
-
-                }
-                catch (Exception ex)
-                {
-                    //no se pudo grabar en soler
+                    bool incluirMilvus = procesarEnShpSolrMilvus.Contains("Milvus");
+                    await ProcesarEnSolr(it.Id, activo, item, root, solerManager, context, logsManager, incluirMilvus);
                 }
 
-
+                if (procesarEnShpSolrMilvus.Contains("Milvus - IA"))
+                {
+                    await ProcesarEnMilvusAsync(http, it.Id, activo, item.Id, item, root, solerManager, context, logsManager, true);
+                }
+                else if (procesarEnShpSolrMilvus.Contains("Milvus"))
+                {
+                    await ProcesarEnMilvusAsync(http, it.Id, activo, item.Id, item, root, solerManager, context, logsManager,false);
+                }
             }
             CantidadProcesdos++;
-            var json = JsonSerializer.Serialize(item.FieldValues, jsonOptions);
+            await logsManager.SaveItemProcessedJsonAsync(activo, item.FieldValues);
 
-            var baseFolder = Path.Combine(AppContext.BaseDirectory, "searchLogs");
-            var listItemsFolder = Path.Combine(baseFolder, "ListItems");
-
-            Directory.CreateDirectory(listItemsFolder);
-
-            var filePathNewItem = Path.Combine(listItemsFolder, $"Search_{activo}.json");
-
-            System.IO.File.WriteAllText(filePathNewItem, json, Encoding.UTF8);
-
-            Console.WriteLine($"✅ JSON completo guardado en: {filePathNewItem}");
-
-            await logsManager.SaveLogEjecucion(it.Id, new ItemLogEjecucion
-            {
-                ItemId = it.Id,
-                Fecha = DateTime.Now,
-                Mensaje = "Inicio proceso",
-                Estado = "OK"
-            });
+            await logsManager.LogEjecucionAsync(it.Id, "Inicio proceso", "OK");
 
 
 
@@ -374,45 +206,21 @@ try
             //catch (Exception ex)
             //{
 
-            await logsManager.SaveLogError(it.Id, new ItemLogError
-            {
-                ItemId = activo,
-                Fecha = DateTime.Now,
-                Mensaje = $"Item con guid {activo} no Modificado",
-                Estado = "error en el cambio"
-            });
+            await logsManager.LogErrorAsync(it.Id, activo, $"Item con guid {activo} no Modificado", "error en el cambio");
             //    Console.WriteLine("Error en la busqueda del Item"+ex);
             //}
-            await sp.UpdateListItemAsync(
-    it.Id,
-    new Dictionary<string, object>
-    {
-{ "CantActivosProcesados", CantidadProcesdos }
-                 });
+            await sp.UpdateCantActivosAsync(it.Id, CantidadProcesdos);
         }
 
 
-        await sp.UpdateListItemAsync(
-                it.Id,
-                new Dictionary<string, object>
-                {
-                    { "EstadoProceso", "Finalizado"
-                    }
-                }
-                );
+        await sp.UpdateEstadoProcesoAsync(it.Id, "Finalizado");
 
 
         await logsManager.SyncLogs(it.Id, cts.Token);
 
     }
 
-    await logsManager.SaveLogEjecucion(0, new ItemLogEjecucion
-    {
-        ItemId = 0,
-        Fecha = DateTime.Now,
-        Mensaje = "Proceso completado correctamente",
-        Estado = "Finalizado"
-    });
+    await logsManager.LogEjecucionAsync(0, "Proceso completado correctamente", "Finalizado");
 
 }
 catch (Exception ex)
@@ -424,6 +232,69 @@ finally
 {
     Console.WriteLine("Proceso finalizado con código " + Environment.ExitCode + ". Presiona una tecla para cerrar...");
     Console.ReadKey();
+}
+
+async Task<string> ManejarPausaPorSchedule(
+    string estadoActual,
+    int itemId,
+    List<WeeklyWindow> allow,
+    List<WeeklyWindow> deny,
+    SharePointManager sp,
+    LogsManager logsManager,
+    CancellationToken cancellationToken)
+{
+    if (!ScheduleGate.IsAllowed(DateTimeOffset.Now, allow, deny))
+    {
+        if (estadoActual != "En Pausa")
+        {
+            estadoActual = "En Pausa";
+            await sp.UpdateEstadoProcesoAsync(itemId, "En Pausa");
+        }
+
+        Console.WriteLine("Proceso en Pausa");
+        await logsManager.LogEjecucionAsync(itemId, "Proceso en Pausa", "En Pausa");
+
+        await ScheduleGate.WaitUntilAllowedAsync(allow, deny, TimeSpan.FromMinutes(1), cancellationToken);
+
+        estadoActual = "Procesando";
+        await sp.UpdateEstadoProcesoAsync(itemId, "Procesando");
+        await logsManager.LogEjecucionAsync(itemId, "El Procesando", "Procesando");
+
+        Console.WriteLine("Proceso Procesando");
+    }
+
+    return estadoActual;
+}
+
+(List<List>, List) CargarBibliotecasSharePoint(ClientContext context)
+{
+    var libraryNames = new List<string>
+    {
+        "Documento",
+        "Agenda",
+        "Doctrina",
+        "Guía Temática",
+        "Jurisprudencia Adm",
+        "Jurisprudencia Judicial",
+        "Legislación",
+        "Modelo",
+        "Actualidad",
+        "Videos",
+        "Podcast"
+    };
+
+    var listas = new List<List>();
+
+    foreach (var name in libraryNames)
+    {
+        var list = context.Web.Lists.GetByTitle(name);
+        context.Load(list);
+        listas.Add(list);
+    }
+
+    var listaProbable = listas.FirstOrDefault();
+
+    return (listas, listaProbable);
 }
 
 static ListItem GetItemByUniqueId(ClientContext ctx, List listaProbable, Guid uniqueId)
@@ -455,13 +326,23 @@ static ListItem GetItemByUniqueId(ClientContext ctx, List listaProbable, Guid un
             var item = items[0];
 
             //ctx.Load(item, i => i.ContentType, i => i.ParentList );
+            try
+            {
             ctx.Load(item, i => i.ContentType, i => i.ParentList, i => i.ParentList.Fields, i => i["eolShpTema"], i => i["eolShpCodigoMislibros"]);
             ctx.ExecuteQuery();
+            }
+            catch
+            {
+                ctx.Load(item, i => i.ContentType, i => i.ParentList, i => i.ParentList.Fields, i => i["eolShpTema"]);
+                ctx.ExecuteQuery();
+            }
+            
             return item;
         }
     }
-    catch
+    catch(Exception Ex)
     {
+        Console.WriteLine("Error"+Ex);
         // ignorar listas que fallen
     }
 
@@ -476,6 +357,7 @@ string GetString(JsonElement el, string prop)
 
     return null;
 }
+
 ListItem FindItem(List<List> listas, Guid guid, ClientContext ctx, ref List listaProbable)
 {
 
@@ -491,4 +373,114 @@ ListItem FindItem(List<List> listas, Guid guid, ClientContext ctx, ref List list
     }
 
     return null;
+}
+
+async Task<(IDictionary<string, object> itemFormateado, Dictionary<string, object> camposModificados)> ObtenerItemFormateadoYCampos(
+    ListItem item,
+    JsonElement root,
+    SolrManager solrManager,
+    ClientContext context)
+{
+    // 1️⃣ Formatear item
+    var itemFormateado = await solrManager.GetItemFormatSync(context, item);
+
+    // 2️⃣ Extraer campos modificados
+    var campos = new Dictionary<string, object>();
+    foreach (JsonElement cambio in root.EnumerateArray())
+    {
+        var campo = GetString(cambio, "campo");
+
+        if (itemFormateado.TryGetValue(campo, out var valor))
+        {
+            if (!campos.ContainsKey(campo))
+                campos.Add(campo, valor);
+        }
+        else
+        {
+            Console.WriteLine($"⚠ El campo '{campo}' no existe en ItemFormateado");
+        }
+    }
+
+    return (itemFormateado, campos);
+}
+
+async Task ProcesarEnSolr(
+    int itemCambiosId,
+    string activo,
+    ListItem item,
+    JsonElement root,
+    SolrManager solrManager,
+    ClientContext context,
+    LogsManager logsManager,
+    bool incluirMilvus)
+{
+    try
+    {
+        // Obtener item formateado y campos modificados
+        var (itemFormateado, campos) = await ObtenerItemFormateadoYCampos(item, root, solrManager, context);
+
+        // Actualizar en Solr
+        var resultadoSolr = await solrManager.AtomicUpdateSolrMultiple(
+            item["GUID"].ToString(),
+            campos,
+            item.Id
+        );
+
+        if (resultadoSolr.ok)
+        {
+            Console.WriteLine($"✔️ Solr actualizado para ID {item.Id}");
+            await logsManager.LogEjecucionAsync(itemCambiosId, $"Activo modificado en Solr (ID {item.Id})", "OK");
+
+        }
+        else
+        {
+            Console.WriteLine($"⚠️ Error Solr (ID {item.Id}): {resultadoSolr.msg}");
+            await logsManager.LogErrorAsync(itemCambiosId, activo, $"Error al actualizar en Solr: {resultadoSolr.msg}", "Error Solr");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Excepción en Solr: {ex.Message}");
+        await logsManager.LogErrorAsync(itemCambiosId, activo, $"Excepción al procesar en Solr: {ex.Message}", "Error Solr");
+    }
+}
+
+async Task ProcesarEnMilvusAsync(
+    HttpClient client,
+    int itemCambiosId,
+    string activo,
+    int itemId,
+    ListItem item,
+    JsonElement root,
+    SolrManager solrManager,
+    ClientContext context,
+    LogsManager logsManager,
+    bool useIA)
+{
+    try
+    {
+        // Obtener item formateado y campos modificados (reutiliza la misma lógica que Solr)
+        var (itemFormateado, campos) = await ObtenerItemFormateadoYCampos(item, root, solrManager, context);
+
+        string json = JsonConvert.SerializeObject(itemFormateado, Newtonsoft.Json.Formatting.Indented);
+
+        // Enviar a Milvus
+        var milvusResult = await MilvusManager.EnviarAMilvus(client, json, itemId, useIA);
+
+        if (milvusResult.ok)
+        {
+            Console.WriteLine($"✔️ Milvus actualizado para ID {itemId}");
+            await logsManager.LogEjecucionAsync(itemCambiosId, $"Activo modificado en Milvus (ID {itemId})", "OK");
+        }
+        else
+        {
+            Console.WriteLine($"⚠️ Error al actualizar en Milvus: {milvusResult.msg}");
+            await logsManager.LogErrorAsync(itemCambiosId, activo, $"Error al actualizar en Milvus: {milvusResult.msg}", "Error Milvus");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Excepción al actualizar en Milvus: {ex.Message}");
+        await logsManager.LogErrorAsync(itemCambiosId, activo, $"Excepción al actualizar en Milvus: {ex.Message}", "Error Milvus");
+    }
 }
