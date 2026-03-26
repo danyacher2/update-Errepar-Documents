@@ -117,14 +117,14 @@ namespace Errepar.MetadataManager.Process.Services
             return (false, $"Falló después de {maxIntentos} intentos. Último error: {resultado.msg}");
         }
 
-        private async Task<(bool ok, string msg)> EnviarASolr(string json, int id, string ambiente)
+        public async Task<(bool ok, string msg)> EnviarASolr(string json, int id, string ambiente)
             {
             //string user = "Basic " +  Base64Encode("uat-solr-acess:SXtuCde9&JW%pkAK");
 
             string user = "Basic " + (ambiente.Equals("PROD") ? Base64Encode("admin:6s2HUXFb8la") : Base64Encode("uat-solr-acess:SXtuCde9&JW%pkAK"));
             //string urlSolr = ambiente.Equals("PROD") ? "https://solr-prod-hcs.errepar.com/solr/prodActivos02/update/json/docs?commit=true" : "https://solr.errepar.com/solr/prodActivos01/update/json/docs?commit=true";
             string urlSolr = "https://solr.uat.errepar.com/solr/prodActivos02/update?commit=true";
-            //string urlSolr = "https://solr-prod-hcs.errepar.com/solr/prodActivos02/update/json/docs?commit=true";
+            //string urlSolr = "https://solr.uat.errepar.com/solr/prodActivos02/update/json/docs?commit=true";
 
             //string urlSolr = "https://solr.errepar.com/solr/prodActivos02/update?commit=true";
 
@@ -134,7 +134,7 @@ namespace Errepar.MetadataManager.Process.Services
                 Method = HttpMethod.Post,
                 RequestUri = new Uri(urlSolr),
                 Content = new StringContent(json, Encoding.UTF8, "application/json"),
-                            };
+            };
 
             httpRequestMessage.Headers.Add("Authorization", user);
 
@@ -169,6 +169,119 @@ namespace Errepar.MetadataManager.Process.Services
             return System.Convert.ToBase64String(plainTextBytes);
             }
 
+        public async void EliminarDeSolr(string eolShpTimeStamp, string ambiente)
+        {
+            //string jsonData = "{\"delete\":{\"query\":\"eolShpTimeStamp:\"" + eolShpTimeStamp + "\"\"}}";
+           // string jsonData = "{'delete':{'eolShpTimeStamp:" + eolShpTimeStamp + "'}}";
+
+            //string jsonData = @"{
+            //      ""delete"": {
+            //        ""query"": ""eolShpTimeStamp:" + eolShpTimeStamp+@"""
+            //      },
+            //      ""commit"": {}
+            //    }
+            //    ";
+
+            //string jsonData = "{\"delete\":{\"query\":\"eolShpTimeStamp:"+ eolShpTimeStamp + "\"}}";
+
+            var payload = new
+            {
+                delete = new
+                {
+                    query = $"eolShpTimeStamp:\"{eolShpTimeStamp}\""
+                }
+            };
+
+            string json = JsonConvert.SerializeObject(payload);
+           // string json = JsonConvert.SerializeObject(jsonData);
+
+            string user = "Basic " + (ambiente.Equals("PROD") ? Base64Encode("admin:T0m4t1t02023*") : Base64Encode("uat-solr-acess:SXtuCde9&JW%pkAK"));
+            string urlSolr = ambiente.Equals("PROD") ? "https://solr-prod-hcs.errepar.com/solr/prodActivos02/update?commit=true" : "https://solr.uat.errepar.com/solr/prodActivos02/update?commit=true";
+            HttpContent content = new StringContent(json, Encoding.UTF8, "application/json");
+            var httpRequestMessage = new HttpRequestMessage
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri(urlSolr),
+                Headers = {
+                    { HttpRequestHeader.ContentType.ToString(), "application/json" },
+                    { HttpRequestHeader.Authorization.ToString(), user }
+                },
+                Content = content//new StringContent(json)
+            };
+
+            var response2 = this._http.SendAsync(httpRequestMessage).Result;
+
+            if (response2.StatusCode == HttpStatusCode.OK)
+            {
+                Console.WriteLine("Activo " + eolShpTimeStamp + " eliminado");
+                await EliminarDeMilvus(eolShpTimeStamp);
+            }
+            else
+            {
+                Console.WriteLine("ERROR en activo " + eolShpTimeStamp);
+            }
+        }
+
+        private async Task<(bool ok, string msg)> EliminarDeMilvus(string eolShpTimeStamp)
+        {
+            string bodyTokenMilvus = "{\"key\":\"e5169fe4-1c39-4356-b148-1f210cc2431b\"}";
+            //string urlTokenMilvus = "https://accounts.errepar.com/eauth/auth/job/getJobCredentialsEAuth";
+            string urlTokenMilvus = "https://accounts.uat.errepar.com/syserrepar/integration/authenticationandauthorization/e-auth-api/auth/job/getJobCredentialsEAuth";
+
+            var httpRequestToken = new HttpRequestMessage
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri(urlTokenMilvus),
+                Headers = {
+                    { HttpRequestHeader.ContentType.ToString(), "application/json" },
+                    { HttpRequestHeader.Accept.ToString(), "application/json" }
+                },
+                Content = new StringContent(bodyTokenMilvus, Encoding.UTF8, "application/json")
+            };
+
+            HttpResponseMessage response2 = this._http.SendAsync(httpRequestToken).Result;
+
+            if (response2.StatusCode == HttpStatusCode.Found)
+            {
+                string responseBody = await response2.Content.ReadAsStringAsync();
+                string jwt2 = JsonDocument.Parse(responseBody).RootElement.GetProperty("jwt2").GetString();
+                //Console.WriteLine(GetResponseBodyAsync(response2));
+                //string urlMilvus = "https://api.errepar.com/syserrepar/embeddeddocumentai/deleteAssetMilvus?eolShpTimeStamp=" + eolShpTimeStamp;
+                string urlMilvus = "https://api.uat.errepar.com/syserrepar/embeddeddocumentai/deleteAssetMilvus?eolShpTimeStamp=" + eolShpTimeStamp;
+
+                var httpRequestMilvus = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Delete,
+                    RequestUri = new Uri(urlMilvus),
+                    Headers = {
+                        { HttpRequestHeader.ContentType.ToString(), "application/json" },
+                        { HttpRequestHeader.Authorization.ToString(), jwt2 }
+                    },
+                    //Content = new StringContent(json, Encoding.UTF8, "application/json")
+                };
+
+                HttpResponseMessage responseMilvus = this._http.SendAsync(httpRequestMilvus).Result;
+
+                if (responseMilvus.StatusCode == HttpStatusCode.OK)
+                {
+                    //GrabarReporte(String.Format("Activo {0} eliminado milvus", id), "C:\\Users\\gonzalo.sanchez\\source\\repos\\Errepar.Alpha.MigradorMasivo\\Logs\\Duplicados-Eliminados" + _nombreBiblioteca + _ambiente + ".txt");
+                    Console.WriteLine("Activo " + eolShpTimeStamp + " eliminado milvus");
+                    return (true, "200");
+                }
+                else
+                {
+                    var reason = responseMilvus.ReasonPhrase ?? "";
+                    Console.WriteLine("milvus - ERROR en activo " + eolShpTimeStamp + " | " + reason);
+                    return (false, $"{(int)responseMilvus.StatusCode} {reason}");
+                }
+            }
+            else
+            {
+                var reason = response2.ReasonPhrase ?? "";
+                Console.WriteLine("ERROR TOKEN MILVUS | " + reason);
+                return (false, $"Token {(int)response2.StatusCode} {reason}");
+            }
+        }
 
 
         public async Task<IDictionary<string, object>> GetItemFormatSync(ClientContext ctx, ListItem item)
@@ -191,6 +304,7 @@ namespace Errepar.MetadataManager.Process.Services
                             List<string> values = new List<string>();
                             List<string> valuesGUID = new List<string>();
                             TaxonomyFieldValueCollection _taxonomyValueColl = (item[field.InternalName] as TaxonomyFieldValueCollection);
+                            if(_taxonomyValueColl!=null)
                             foreach (var _taxonomyValue in _taxonomyValueColl)
                                 {
 
