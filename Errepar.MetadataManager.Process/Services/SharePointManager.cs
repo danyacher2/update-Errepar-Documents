@@ -52,10 +52,10 @@ namespace Errepar.MetadataManager.Process.Services
                 //"&$filter=(EstadoProceso eq 'Pendiente')";
                 "&$filter=(EstadoProceso eq 'Pendiente') or (EstadoProceso eq 'En Pausa')";
             ;
-             using var resp = await _http.GetAsync(endpoint, cancellationToken).ConfigureAwait(false);
-             resp.EnsureSuccessStatusCode();
+            using var resp = await _http.GetAsync(endpoint, cancellationToken).ConfigureAwait(false);
+            resp.EnsureSuccessStatusCode();
 
-             var json = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var json = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
             using var doc = JsonDocument.Parse(json);
 
@@ -88,7 +88,7 @@ namespace Errepar.MetadataManager.Process.Services
 
                 it.Id = TryGetInt(el, "Id") ?? 0;
                 it.Cambios = TryGetJson(el, "Cambios");
-                
+
 
                 it.CantActivosProcesados = TryGetInt(el, "CantActivosProcesados", "Cant Activos Procesados");
                 it.CantActivosSeleccionados = TryGetInt(el, "CantActivosSeleccionados", "Cant Activos Seleccionados");
@@ -136,94 +136,94 @@ namespace Errepar.MetadataManager.Process.Services
             var response = await _http.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
-                {
+            {
                 var error = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"SharePoint error: {response.StatusCode}");
                 Console.WriteLine(error);
-                }
-
-            response.EnsureSuccessStatusCode();
             }
 
+            response.EnsureSuccessStatusCode();
+        }
+
         public Task UpdateEstadoProcesoAsync(int itemId, string estado)
-            {
+        {
             return UpdateListItemAsync(itemId, new Dictionary<string, object>
                 {
                     { "EstadoProceso", estado }
                 });
-            }
+        }
 
         public Task UpdateCantActivosAsync(int itemId, int cantidad)
-            {
+        {
             return UpdateListItemAsync(itemId, new Dictionary<string, object>
                 {
                     { "CantActivosProcesados", cantidad }
                 });
-            }
-        private static JsonDocument TryGetJson(JsonElement el, string fieldName)
-    {
-        if (!el.TryGetProperty(fieldName, out var prop))
-            return null;
-
-        if (prop.ValueKind == JsonValueKind.Null)
-            return null;
-
-        // 🟢 Caso 1: ya es JSON real
-        if (prop.ValueKind == JsonValueKind.Array || prop.ValueKind == JsonValueKind.Object)
-        {
-            return JsonDocument.Parse(prop.GetRawText());
         }
-
-        // 🟡 Caso 2: string
-        if (prop.ValueKind == JsonValueKind.String)
+        private static JsonDocument TryGetJson(JsonElement el, string fieldName)
         {
-            var raw = prop.GetString();
-
-            if (string.IsNullOrWhiteSpace(raw))
+            if (!el.TryGetProperty(fieldName, out var prop))
                 return null;
 
-            raw = raw.Trim();
+            if (prop.ValueKind == JsonValueKind.Null)
+                return null;
 
-            // 🔴 Si viene HTML → limpiamos tags
-            if (raw.StartsWith("<"))
+            // 🟢 Caso 1: ya es JSON real
+            if (prop.ValueKind == JsonValueKind.Array || prop.ValueKind == JsonValueKind.Object)
             {
-                // 1) quitar tags HTML
-                raw = Regex.Replace(raw, "<.*?>", string.Empty);
+                return JsonDocument.Parse(prop.GetRawText());
+            }
 
-                // 2) decodificar entidades HTML
-                raw = WebUtility.HtmlDecode(raw);
+            // 🟡 Caso 2: string
+            if (prop.ValueKind == JsonValueKind.String)
+            {
+                var raw = prop.GetString();
+
+                if (string.IsNullOrWhiteSpace(raw))
+                    return null;
 
                 raw = raw.Trim();
+
+                // 🔴 Si viene HTML → limpiamos tags
+                if (raw.StartsWith("<"))
+                {
+                    // 1) quitar tags HTML
+                    raw = Regex.Replace(raw, "<.*?>", string.Empty);
+
+                    // 2) decodificar entidades HTML
+                    raw = WebUtility.HtmlDecode(raw);
+
+                    raw = raw.Trim();
+                }
+
+                // 🧠 ahora intentamos parsear como JSON real
+                if ((raw.StartsWith("[") && raw.EndsWith("]")) ||
+                    (raw.StartsWith("{") && raw.EndsWith("}")))
+                {
+                    try
+                    {
+                        return JsonDocument.Parse(raw);
+                    }
+                    catch (JsonException)
+                    {
+                        // si está corrupto, lo envolvemos como string
+                        var safe = JsonSerializer.Serialize(raw);
+                        return JsonDocument.Parse(safe);
+                    }
+                }
+
+                // 🔵 No es JSON → lo devolvemos como string JSON
+                var safeJson = JsonSerializer.Serialize(raw);
+                return JsonDocument.Parse(safeJson);
             }
 
-            // 🧠 ahora intentamos parsear como JSON real
-            if ((raw.StartsWith("[") && raw.EndsWith("]")) ||
-                (raw.StartsWith("{") && raw.EndsWith("}")))
-            {
-                try
-                {
-                    return JsonDocument.Parse(raw);
-                }
-                catch (JsonException)
-                {
-                    // si está corrupto, lo envolvemos como string
-                    var safe = JsonSerializer.Serialize(raw);
-                    return JsonDocument.Parse(safe);
-                }
-            }
-
-            // 🔵 No es JSON → lo devolvemos como string JSON
-            var safeJson = JsonSerializer.Serialize(raw);
-            return JsonDocument.Parse(safeJson);
+            return null;
         }
-
-        return null;
-    }
-    /// <summary>
-    /// Busca y descarga el contenido del archivo "Activos" de los adjuntos.
-    /// Parsea el contenido y lo devuelve como array de strings.
-    /// </summary>
-    private async Task<string[]> TryGetActivosAsync(HttpClient http, string siteUrl, string listTitle, int itemId, string datosAdjuntos, CancellationToken cancellationToken)
+        /// <summary>
+        /// Busca y descarga el contenido del archivo "Activos" de los adjuntos.
+        /// Parsea el contenido y lo devuelve como array de strings.
+        /// </summary>
+        private async Task<string[]> TryGetActivosAsync(HttpClient http, string siteUrl, string listTitle, int itemId, string datosAdjuntos, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(datosAdjuntos))
                 return Array.Empty<string>();
@@ -262,7 +262,7 @@ namespace Errepar.MetadataManager.Process.Services
                     return Array.Empty<string>();
                 }
 
-                var contenido = await resp.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);               
+                var contenido = await resp.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
 
                 // Convertir bytes a texto
                 var texto = System.Text.Encoding.UTF8.GetString(contenido);
@@ -513,7 +513,7 @@ namespace Errepar.MetadataManager.Process.Services
             var json = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             using var doc = JsonDocument.Parse(json);
 
-            if (doc.RootElement.TryGetProperty("d", out var d) && 
+            if (doc.RootElement.TryGetProperty("d", out var d) &&
                 d.TryGetProperty("ServerRelativeUrl", out var url))
             {
                 return url.GetString();
@@ -553,7 +553,7 @@ namespace Errepar.MetadataManager.Process.Services
             return uploadedUrls;
         }
 
-     
+
         public async Task<List<string>> GetAttachmentsAsync(int itemId, CancellationToken cancellationToken = default)
         {
             var endpoint = $"{_siteUrl}/_api/web/lists/getbytitle('{_listTitle}')/items({itemId})/AttachmentFiles";
@@ -567,7 +567,7 @@ namespace Errepar.MetadataManager.Process.Services
             var urls = new List<string>();
             JsonElement arrayElement;
 
-            if (doc.RootElement.TryGetProperty("d", out var d) && 
+            if (doc.RootElement.TryGetProperty("d", out var d) &&
                 d.TryGetProperty("results", out arrayElement))
             {
                 // ok
@@ -583,7 +583,7 @@ namespace Errepar.MetadataManager.Process.Services
 
             foreach (var attachment in arrayElement.EnumerateArray())
             {
-                if (attachment.TryGetProperty("ServerRelativeUrl", out var urlProp) && 
+                if (attachment.TryGetProperty("ServerRelativeUrl", out var urlProp) &&
                     urlProp.ValueKind == JsonValueKind.String)
                 {
                     urls.Add(urlProp.GetString());

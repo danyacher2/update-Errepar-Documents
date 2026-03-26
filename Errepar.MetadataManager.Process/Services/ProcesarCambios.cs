@@ -261,8 +261,7 @@ namespace Errepar.MetadataManager.Process.Services
                                 taxField.SetFieldValueByValue(item, taxValue);
                             }
 
-                            item.Update();
-                            _context.ExecuteQuery();
+                            // ✅ No llamar item.Update() aquí - se llama SystemUpdate() desde Program.cs
                         }
                         break;
 
@@ -273,7 +272,7 @@ namespace Errepar.MetadataManager.Process.Services
             }
             catch (Exception ex)
             {
-                await _logsManager.SaveLogErrorCambios(item.Id, new ItemLogError
+                await _logsManager.SaveLogErrorCambios(itemId, new ItemLogError
                 {
                     ItemId = item.Id.ToString(),
                     Fecha = DateTime.Now,
@@ -441,8 +440,7 @@ namespace Errepar.MetadataManager.Process.Services
                                 var newCollection = new TaxonomyFieldValueCollection(_context, newValue, taxField);
 
                                 taxField.SetFieldValueByValueCollection(item, newCollection);
-                                item.Update();
-                                _context.ExecuteQuery();
+                                // ✅ No llamar item.Update() aquí - se llama SystemUpdate() desde Program.cs
                             }
                             else
                             {
@@ -459,8 +457,7 @@ namespace Errepar.MetadataManager.Process.Services
                                 }
                             }
 
-                            item.Update();
-                            _context.ExecuteQuery();
+                            // ✅ No llamar item.Update() aquí - se llama SystemUpdate() desde Program.cs
                         }
                         break;
 
@@ -471,7 +468,7 @@ namespace Errepar.MetadataManager.Process.Services
             }
             catch (Exception ex)
             {
-                await _logsManager.SaveLogErrorCambios(item.Id, new ItemLogError
+                await _logsManager.SaveLogErrorCambios(itemId, new ItemLogError
                 {
                     ItemId = item.Id.ToString(),
                     Fecha = DateTime.Now,
@@ -688,16 +685,13 @@ namespace Errepar.MetadataManager.Process.Services
             }
             catch (Exception ex)
             {
-                //await _logsManager.SaveLogErrorCambios(item.Id, new ItemLogError
+                //await _logsManager.SaveLogErrorCambios(itemId, new ItemLogError
                 //{
                 //    ItemId = item.Id.ToString(),
                 //    Fecha = DateTime.Now,
                 //    Mensaje = ex.ToString(),
                 //    Estado = "Error en ProcesarCambios"
                 //});
-
-
-
                 Console.WriteLine($"⚠ El campo '{campo}' no existe en la lista {item}");
                 await _logsManager.SaveLogErrorCambios(itemId, new ItemLogError
                 {
