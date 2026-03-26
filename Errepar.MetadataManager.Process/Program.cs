@@ -95,12 +95,12 @@ try
        
         int CantidadProcesdos = 0;
         var it = items[j];
-        if (it.CantActivosProcesados == null && it.CantActivosProcesados > 0 && it.CantActivosProcesados < it.CantActivosSeleccionados)
+        if (it.CantActivosProcesados != null && it.CantActivosProcesados > 0 && it.CantActivosProcesados < it.CantActivosSeleccionados)
         {
             CantidadProcesdos = it.CantActivosProcesados.Value;
         }
         Console.WriteLine($"Id={it.Id} | Título='{it.Titulo}' | Estado='{it.EstadoProceso}' | EjecutadoPor='{it.EjecutadoPor}' | Link='{it.Link}'");
-        for (int i = 0; i < it.Activos.Count; i++)
+        for (int i = CantidadProcesdos; i < it.Activos.Count; i++)
         {
             try
             {
@@ -207,14 +207,9 @@ try
                         Console.WriteLine($"⚠️ Excepción al actualizar en SharePoint: {ex.Message}");
                         await logsManager.LogErrorAsync(it.Id, activo, $"Excepción al actualizar en SharePoint: {ex.Message}", "Error SharePoint");
                     }
-
-
-                    CantidadProcesdos++;
                     await logsManager.SaveItemProcessedJsonAsync(activo, item.FieldValues);
 
                     await logsManager.LogEjecucionAsync(it.Id, "Item actualizado correctamente:" + item.Id, "OK");
-
-
 
                     var logActivo = new ItemLogActivosProcesados
                     {
@@ -246,14 +241,13 @@ try
                 context.ExecutingWebRequest -= UpdateContextToken;
                 context.ExecutingWebRequest += UpdateContextToken;
 
-                await sp.UpdateCantActivosAsync(it.Id, CantidadProcesdos);
+                await sp.UpdateCantActivosAsync(it.Id, i);
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Error actualizando cantidad de activos: " + ex);
                 throw;
             }
-
         }
 
         try
@@ -295,7 +289,7 @@ catch (Exception ex)
 finally
 {
     Console.WriteLine("Proceso finalizado con código " + Environment.ExitCode + ". Presiona una tecla para cerrar...");
-    Console.ReadKey();
+    
 }
 
 async Task<string> ManejarPausaPorSchedule(
