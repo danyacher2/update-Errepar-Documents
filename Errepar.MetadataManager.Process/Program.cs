@@ -32,7 +32,7 @@ string clientId = "f679c472-7b0c-45dc-b38c-cca0b662f77a";//erreparDev    //strin
 string certificateThumbprint = Environment.GetEnvironmentVariable("CERT_THUMBPRINT")
     ?? "452079A2697BC9646023FAE02876488654BBDB2C";
 var authToken = await TokenProvider.GetSharePointTokenWithCertificateThumbprintAsync(tenantId, clientId, certificateThumbprint, siteUrl);
-DateTime tokenTime= DateTime.MinValue;
+DateTime tokenTime = DateTime.MinValue;
 
 // Delegate para actualizar el token en ClientContext
 void UpdateContextToken(object sender, WebRequestEventArgs e)
@@ -43,6 +43,7 @@ void UpdateContextToken(object sender, WebRequestEventArgs e)
 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
 ServicePointManager.DnsRefreshTimeout = 0; // Forzar resolución DNS en cada intento
 ServicePointManager.EnableDnsRoundRobin = true;
+
 
 try
 {
@@ -92,10 +93,10 @@ try
 
     for (int j = 0; j < items.Count; j++)
     {
-       
+
         int CantidadProcesdos = 0;
         var it = items[j];
-        if (it.CantActivosProcesados != null && it.CantActivosProcesados > 0 && it.CantActivosProcesados < it.CantActivosSeleccionados)
+        if (it.CantActivosProcesados != null && it.CantActivosProcesados+1 < it.CantActivosSeleccionados && it.CantActivosProcesados > 0)
         {
             CantidadProcesdos = it.CantActivosProcesados.Value;
         }
@@ -179,33 +180,27 @@ try
                         if (procesarEnShpSolrMilvus.Contains("Soler"))
                         {
                             bool incluirMilvus = procesarEnShpSolrMilvus.Contains("Milvus");
-                            await ProcesarEnSolr(it.Id, activo, item, campos, solerManager, context, logsManager, incluirMilvus);
+                            await ProcesarEnSolr(it.Id, activo, item, campos, solerManager, context, logsManager, incluirMilvus, sp);
                         }
-                        try
+
+                        if (procesarEnShpSolrMilvus.Contains("Milvus - IA"))
                         {
-
-                            if (procesarEnShpSolrMilvus.Contains("Milvus - IA"))
-                            {
-                                await ProcesarEnMilvusAsync(http, it.Id, activo, item.Id, item, itemFormateado, solerManager, context, logsManager, true);
-                            }
-                            else if (procesarEnShpSolrMilvus.Contains("Milvus"))
-                            {
-                                await ProcesarEnMilvusAsync(http, it.Id, activo, item.Id, item, itemFormateado, solerManager, context, logsManager, false);
-                            }
-
-
+                            await ProcesarEnMilvusAsync(http, it.Id, activo, item.Id, item, itemFormateado, solerManager, context, logsManager, true, sp);
                         }
-                        catch (Exception ex)
+                        else if (procesarEnShpSolrMilvus.Contains("Milvus"))
                         {
-                            await logsManager.LogErrorAsync(it.Id, it.Id.ToString(), $"Item con guid {it.Id} no Modificado", "error en el cambio" + ex);
-
-
+                            await ProcesarEnMilvusAsync(http, it.Id, activo, item.Id, item, itemFormateado, solerManager, context, logsManager, false, sp);
                         }
+                    }
+                    catch (Exception ex) when (ex.Message.Contains("Error crítico en Solr") || ex.Message.Contains("Error crítico en Milvus"))
+                    {
+                        // Re-lanzar excepciones críticas para detener el proceso
+                        throw;
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"⚠️ Excepción al actualizar en SharePoint: {ex.Message}");
-                        await logsManager.LogErrorAsync(it.Id, activo, $"Excepción al actualizar en SharePoint: {ex.Message}", "Error SharePoint");
+                        Console.WriteLine($"⚠️ Excepción al actualizar en SharePoint: {ex}");
+                        await logsManager.LogErrorAsync(it.Id, activo, $"Excepción al actualizar en SharePoint: {ex}", "Error SharePoint");
                     }
                     await logsManager.SaveItemProcessedJsonAsync(activo, item.FieldValues);
 
@@ -225,6 +220,12 @@ try
 
                     await logsManager.SaveLogActivosProcesados(it.Id, new[] { logActivo });
                 }
+            }
+            catch (Exception ex) when (ex.Message.Contains("Error crítico en Solr") || ex.Message.Contains("Error crítico en Milvus"))
+            {
+                // Re-lanzar excepciones críticas para detener el proceso
+                Console.Error.WriteLine($"❌ Excepción crítica detectada: {ex}");
+                throw;
             }
             catch (Exception ex)
             {
@@ -246,7 +247,7 @@ try
             catch (Exception ex)
             {
                 Console.WriteLine("Error actualizando cantidad de activos: " + ex);
-                throw;
+
             }
         }
 
@@ -265,7 +266,7 @@ try
         catch (Exception ex)
         {
             Console.WriteLine("Error finalizando item: " + ex);
-            throw;
+
         }
     }
     try
@@ -276,7 +277,7 @@ try
     catch (Exception ex)
     {
         Console.WriteLine("Error" + ex);
-        throw;
+
     }
 
 }
@@ -284,12 +285,13 @@ try
 catch (Exception ex)
 {
     Console.Error.WriteLine("Excepción no controlada: " + ex);
+    //Estado error
     Environment.ExitCode = 1;
 }
 finally
 {
     Console.WriteLine("Proceso finalizado con código " + Environment.ExitCode + ". Presiona una tecla para cerrar...");
-    
+
 }
 
 async Task<string> ManejarPausaPorSchedule(
@@ -470,7 +472,8 @@ async Task ProcesarEnSolr(
     SolrManager solrManager,
     ClientContext context,
     LogsManager logsManager,
-    bool incluirMilvus)
+    bool incluirMilvus,
+    SharePointManager sp)
 {
     try
     {
@@ -485,18 +488,31 @@ async Task ProcesarEnSolr(
         {
             Console.WriteLine($"✔️ Solr actualizado para ID {item.Id}");
             await logsManager.LogEjecucionAsync(itemId, $"Activo modificado en Solr (ID {item.Id})", "OK");
-
         }
         else
         {
-            Console.WriteLine($"⚠️ Error Solr (ID {item.Id}): {resultadoSolr.msg}");
-            await logsManager.LogErrorAsync(itemId, activo, $"Error al actualizar en Solr: {resultadoSolr.msg}", "Error Solr");
+            // ❌ Falló después de 3 intentos
+            Console.WriteLine($"❌ ERROR CRÍTICO Solr (ID {item.Id}): {resultadoSolr}");
+            await logsManager.LogErrorAsync(itemId, activo, $"Error crítico en Solr después de 3 intentos: {resultadoSolr}", "Error Solr");
+
+            // Actualizar estado en SharePoint
+            await sp.UpdateEstadoProcesoAsync(itemId, "Error Solr");
+            await logsManager.SyncLogs(itemId, default);
+
+            Console.Error.WriteLine($"⛔ Proceso detenido por error en Solr para item {itemId}");
+            Environment.ExitCode = 2; // Código específico para error Solr
+            throw new Exception($"Error crítico en Solr: {resultadoSolr}");
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"⚠️ Excepción en Solr: {ex.Message}");
-        await logsManager.LogErrorAsync(itemId, activo, $"Excepción al procesar en Solr: {ex.Message}", "Error Solr");
+        Console.WriteLine($"⚠️ Excepción inesperada en Solr: {ex}");
+        await logsManager.LogErrorAsync(itemId, activo, $"Excepción al procesar en Solr: {ex}", "Error Solr");
+        await sp.UpdateEstadoProcesoAsync(itemId, "Error Solr");
+        await logsManager.SyncLogs(itemId, default);
+
+        Environment.ExitCode = 2;
+        throw new Exception($"Excepción crítica en Solr: {ex}", ex);
     }
 }
 
@@ -510,7 +526,8 @@ async Task ProcesarEnMilvusAsync(
     SolrManager solrManager,
     ClientContext context,
     LogsManager logsManager,
-    bool useIA)
+    bool useIA,
+    SharePointManager sp)
 {
     try
     {
@@ -526,14 +543,28 @@ async Task ProcesarEnMilvusAsync(
         }
         else
         {
-            Console.WriteLine($"⚠️ Error al actualizar en Milvus: {milvusResult.msg}");
-            await logsManager.LogErrorAsync(itemCambiosId, activo, $"Error al actualizar en Milvus: {milvusResult.msg}", "Error Milvus");
+            // ❌ Falló después de 3 intentos
+            Console.WriteLine($"❌ ERROR CRÍTICO Milvus (ID {itemId}): {milvusResult}");
+            await logsManager.LogErrorAsync(itemCambiosId, activo, $"Error crítico en Milvus después de 3 intentos: {milvusResult}", "Error Milvus");
+
+            // Actualizar estado en SharePoint
+            await sp.UpdateEstadoProcesoAsync(itemCambiosId, "Error Milvus");
+            await logsManager.SyncLogs(itemCambiosId, default);
+
+            Console.Error.WriteLine($"⛔ Proceso detenido por error en Milvus para item {itemCambiosId}");
+            Environment.ExitCode = 3; // Código específico para error Milvus
+            throw new Exception($"Error crítico en Milvus: {milvusResult}");
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"⚠️ Excepción al actualizar en Milvus: {ex.Message}");
-        await logsManager.LogErrorAsync(itemCambiosId, activo, $"Excepción al actualizar en Milvus: {ex.Message}", "Error Milvus");
+        Console.WriteLine($"⚠️ Excepción inesperada en Milvus: {ex}");
+        await logsManager.LogErrorAsync(itemCambiosId, activo, $"Excepción al actualizar en Milvus: {ex}", "Error Milvus");
+        await sp.UpdateEstadoProcesoAsync(itemCambiosId, "Error Milvus");
+        await logsManager.SyncLogs(itemCambiosId, default);
+
+        Environment.ExitCode = 3;
+        throw new Exception($"Excepción crítica en Milvus: {ex}", ex);
     }
 }
 

@@ -142,7 +142,7 @@ namespace Errepar.MetadataManager.Process.Services
             using var response = await _http.SendAsync(httpRequestMessage);
 
             if (response.StatusCode == HttpStatusCode.OK)
-                {
+            {
                 //GrabarReporte(String.Format("Activo {0} migrado | Hora: {1} - {2}", id, DateTime.Now.ToShortDateString(), DateTime.Now.ToShortTimeString()), "C:\\Users\\gonzalo.sanchez\\source\\repos\\Errepar.Alpha.MigradorMasivo\\Logs\\DocumentosProcesados-" + _nombreBiblioteca + _ambiente + ".txt");
                 Console.WriteLine("Activo " + id + " migrado a SOLR");
                 return (true, "200");
@@ -151,7 +151,7 @@ namespace Errepar.MetadataManager.Process.Services
                 //  EnviarAMilvus(json, id);
             }
             else
-                {
+            {
 
                 //GrabarReporte(String.Format("Activo {0} fallo SOLR| Hora: {1} - {2} | Error: {3}", id, DateTime.Now.ToShortDateString(), DateTime.Now.ToShortTimeString(), response2.ReasonPhrase), "C:\\Users\\gonzalo.sanchez\\source\\repos\\Errepar.Alpha.MigradorMasivo\\Logs\\DocumentosError-" + _nombreBiblioteca + _ambiente + "2.txt");
                 //Console.WriteLine("SOLR - ERROR en activo " + id);
@@ -159,9 +159,9 @@ namespace Errepar.MetadataManager.Process.Services
                 var responseBody = await response.Content.ReadAsStringAsync();
                 Console.WriteLine("SOLR - ERROR en activo " + id + " | " + reason);
                 Console.WriteLine($"Response body: {responseBody}");
-                return (false, $"{(int)response.StatusCode} {reason}");                        
+                return (false, $"{(int)response.StatusCode} {reason}");
             }
-            }
+        }
 
         public static string Base64Encode(string plainText)
             {

@@ -49,10 +49,19 @@ namespace Errepar.MetadataManager.Process.Services
                 "Author/Title,Editor/Title,EstadoProceso,FechaFinalizado,FechaPendiente,LinkMetadataManager," +
                 "Modified,EjecutadoPor/Title,EjecutadoPor/Id,AttachmentFiles/ServerRelativeUrl" +
                 "&$expand=Author,Editor,AttachmentFiles,EjecutadoPor" +
-                //"&$filter=(EstadoProceso eq 'Pendiente')";
                 "&$filter=(EstadoProceso eq 'Pendiente') or (EstadoProceso eq 'En Pausa')";
-            ;
+
+            Console.WriteLine($"🔍 DEBUG - Endpoint: {endpoint}");
+
             using var resp = await _http.GetAsync(endpoint, cancellationToken).ConfigureAwait(false);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var errorContent = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                Console.WriteLine($"❌ Error {resp.StatusCode} en SharePoint REST API");
+                Console.WriteLine($"📄 Response: {errorContent}");
+            }
+
             resp.EnsureSuccessStatusCode();
 
             var json = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
@@ -89,9 +98,9 @@ namespace Errepar.MetadataManager.Process.Services
                 it.Id = TryGetInt(el, "Id") ?? 0;
                 it.Cambios = TryGetJson(el, "Cambios");
 
-
                 it.CantActivosProcesados = TryGetInt(el, "CantActivosProcesados", "Cant Activos Procesados");
                 it.CantActivosSeleccionados = TryGetInt(el, "CantActivosSeleccionados", "Cant Activos Seleccionados");
+
                 it.Creado = TryGetDateTime(el, "Created", "Creado");
                 it.EjecutadoPor = TryGetNestedUser(el, "EjecutadoPor", "Ejecutado Por"); // fallback
                 it.EstadoProceso = TryGetString(el, "EstadoProceso", "Estado Proceso");
@@ -390,13 +399,20 @@ namespace Errepar.MetadataManager.Process.Services
         {
             foreach (var name in names)
             {
-                if (el.TryGetProperty(name, out var p) && (p.ValueKind == JsonValueKind.Number))
+                if (el.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.Number)
                 {
-                    if (p.TryGetInt32(out var v)) return v;
+                    // Intentar primero como Int32
+                    if (p.TryGetInt32(out var intValue))
+                        return intValue;
+
+                    // Si falla, intentar como Double y convertir a Int32
+                    if (p.TryGetDouble(out var doubleValue))
+                        return (int)Math.Round(doubleValue);
                 }
                 else if (p.ValueKind == JsonValueKind.String)
                 {
-                    if (int.TryParse(p.GetString(), out var v)) return v;
+                    if (int.TryParse(p.GetString(), out var v))
+                        return v;
                 }
             }
             return null;
