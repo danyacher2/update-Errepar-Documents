@@ -211,7 +211,7 @@ try
                         ItemCambiosId = it.Id,
                         ItemListId = Convert.ToInt32(item.FieldValues["ID"]),
                         LibraryName = item.FieldValues["Title"]?.ToString(),
-                        TimeStamp = Convert.ToInt32(item.FieldValues["ID"]),
+                        TimeStamp = item.FieldValues["eolShpTimeStamp"].ToString(),
                         UrlItem = item.FieldValues["FileRef"]?.ToString(),
                         Activo = activo,
                         Procesado = true,
@@ -219,6 +219,22 @@ try
                     };
 
                     await logsManager.SaveLogActivosProcesados(it.Id, new[] { logActivo });
+                }
+                try
+                {
+                    // Renovar token antes de actualizar SharePoint
+                    authToken = await GetValidTokenAsync();
+                    http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+
+                    // Actualizar también el contexto CSOM
+                    context.ExecutingWebRequest -= UpdateContextToken;
+                    context.ExecutingWebRequest += UpdateContextToken;
+
+                    await sp.UpdateCantActivosAsync(it.Id, i++);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error actualizando cantidad de activos: " + ex);
                 }
             }
             catch (Exception ex) when (ex.Message.Contains("Error crítico en Solr") || ex.Message.Contains("Error crítico en Milvus"))
@@ -232,23 +248,7 @@ try
                 await logsManager.LogErrorAsync(it.Id, it.Id.ToString(), $"Item con guid {it.Id} no Modificado", "error en el cambio" + ex);
                 Console.WriteLine("Error en la busqueda del Item" + ex);
             }
-            try
-            {
-                // Renovar token antes de actualizar SharePoint
-                authToken = await GetValidTokenAsync();
-                http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
-
-                // Actualizar también el contexto CSOM
-                context.ExecutingWebRequest -= UpdateContextToken;
-                context.ExecutingWebRequest += UpdateContextToken;
-
-                await sp.UpdateCantActivosAsync(it.Id, i);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error actualizando cantidad de activos: " + ex);
-
-            }
+            
         }
 
         try
@@ -266,8 +266,7 @@ try
         catch (Exception ex)
         {
             Console.WriteLine("Error finalizando item: " + ex);
-
-        }
+                    }
     }
     try
     {
@@ -277,9 +276,7 @@ try
     catch (Exception ex)
     {
         Console.WriteLine("Error" + ex);
-
     }
-
 }
 
 catch (Exception ex)
@@ -291,8 +288,7 @@ catch (Exception ex)
 finally
 {
     Console.WriteLine("Proceso finalizado con código " + Environment.ExitCode + ". Presiona una tecla para cerrar...");
-
-}
+    }
 
 async Task<string> ManejarPausaPorSchedule(
     string estadoActual,
@@ -322,7 +318,6 @@ async Task<string> ManejarPausaPorSchedule(
 
         Console.WriteLine("Proceso Procesando");
     }
-
     return estadoActual;
 }
 
@@ -510,7 +505,6 @@ async Task ProcesarEnSolr(
         await logsManager.LogErrorAsync(itemId, activo, $"Excepción al procesar en Solr: {ex}", "Error Solr");
         await sp.UpdateEstadoProcesoAsync(itemId, "Error Solr");
         await logsManager.SyncLogs(itemId, default);
-
         Environment.ExitCode = 2;
         throw new Exception($"Excepción crítica en Solr: {ex}", ex);
     }

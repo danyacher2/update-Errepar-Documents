@@ -36,7 +36,7 @@ namespace Errepar.MetadataManager.Process.Services
     {
         public int ItemCambiosId { get; set; }
         public int ItemListId { get; set; }
-        public int TimeStamp { get; set; }
+        public string TimeStamp { get; set; }
         public string UrlItem { get; set; }
         public string LibraryName { get; set; }
         public string Activo { get; set; }

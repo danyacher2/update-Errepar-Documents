@@ -105,19 +105,19 @@ namespace Errepar.MetadataManager.Process.Services
         {
             tipo = tipo?.ToLower();
 
-            if (!item.FieldValues.ContainsKey(campo))
-            {
-                Console.WriteLine($"⚠ El campo '{campo}' no existe en la lista");
-                await _logsManager.SaveLogErrorCambios(itemId, new ItemLogError
-                {
-                    ItemId = item.Id.ToString(),
-                    Fecha = DateTime.Now,
-                    Mensaje = $"El Campo {campo} no exite en este item",
-                    Estado = "Error en ProcesarCambios"
-                });
+            //if (!item.FieldValues.ContainsKey(campo))
+            //{
+            //    Console.WriteLine($"⚠ El campo '{campo}' no existe en la lista");
+            //    await _logsManager.SaveLogErrorCambios(itemId, new ItemLogError
+            //    {
+            //        ItemId = item.Id.ToString(),
+            //        Fecha = DateTime.Now,
+            //        Mensaje = $"El Campo {campo} no exite en este item",
+            //        Estado = "Error en ProcesarCambios"
+            //    });
 
-                return;
-            }
+            //    return;
+            //}
             try
             {
                 switch (tipo)
