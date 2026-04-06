@@ -91,9 +91,6 @@ try
 
     Console.WriteLine($"Items obtenidos: {items.Count}");
 
-    var milvusTest = new TestMilvus();
-    var result = await milvusTest.GetMetadatosMilvusAsync(timestamp);
-
     for (int j = 0; j < items.Count; j++)
     {
         
