@@ -91,17 +91,24 @@ try
 
     Console.WriteLine($"Items obtenidos: {items.Count}");
 
+    var milvusTest = new TestMilvus();
+    var result = await milvusTest.GetMetadatosMilvusAsync(timestamp);
+
     for (int j = 0; j < items.Count; j++)
     {
-
+        
         int CantidadProcesdos = 0;
         var it = items[j];
+        await sp.UpdateEstadoProcesoAsync(it.Id, "Procesando");
         if (it.CantActivosProcesados != null && it.CantActivosProcesados+1 < it.CantActivosSeleccionados && it.CantActivosProcesados > 0)
         {
             CantidadProcesdos = it.CantActivosProcesados.Value;
+            if (CantidadProcesdos > 0)
+                CantidadProcesdos--;
         }
         Console.WriteLine($"Id={it.Id} | Título='{it.Titulo}' | Estado='{it.EstadoProceso}' | EjecutadoPor='{it.EjecutadoPor}' | Link='{it.Link}'");
-        for (int i = CantidadProcesdos; i < it.Activos.Count; i++)
+        int i= 0;
+        for (i = CantidadProcesdos; i < it.Activos.Count; i++)
         {
             try
             {
@@ -250,7 +257,7 @@ try
             }
             
         }
-
+        await sp.UpdateCantActivosAsync(it.Id, i++);
         try
         {
             // Renovar token antes de finalizar el item
