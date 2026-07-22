@@ -1,4 +1,5 @@
 ﻿using Errepar.MetadataManager.Process.Auth;
+using Errepar.MetadataManager.Process.Config;
 using Errepar.MetadataManager.Process.Models;
 using Errepar.MetadataManager.Process.Services;
 using Microsoft.SharePoint.Client;
@@ -25,12 +26,17 @@ var jsonOptions = new JsonSerializerOptions
 {
     WriteIndented = true
 };
-string siteUrl = "https://erreparsa.sharepoint.com/sites/ErreparDesarrollo";
-string tenantId = "00f26ad1-2073-4746-a79f-c83061db35c0";
-string clientId = "f679c472-7b0c-45dc-b38c-cca0b662f77a";//erreparDev    //string clientId = "8688eed4-7464-4288-9820-34849fd19296";//erreparDesarrollo
 
-string certificateThumbprint = Environment.GetEnvironmentVariable("CERT_THUMBPRINT")
-    ?? "452079A2697BC9646023FAE02876488654BBDB2C";
+// Ambiente por defecto: UAT. Se puede sobrescribir con el argumento "--env=PROD" (o "--ambiente=PROD")
+// al ejecutar el proceso, o con la variable de entorno METADATA_MANAGER_AMBIENTE.
+var environment = EnvironmentConfig.ResolveFromArgs(args);
+Console.WriteLine($"Ambiente seleccionado: {environment.Ambiente}");
+
+string siteUrl = environment.SharePoint.SiteUrl;
+string tenantId = environment.SharePoint.TenantId;
+string clientId = environment.SharePoint.ClientId;
+string certificateThumbprint = environment.SharePoint.CertificateThumbprint;
+
 var authToken = await TokenProvider.GetSharePointTokenWithCertificateThumbprintAsync(tenantId, clientId, certificateThumbprint, siteUrl);
 DateTime tokenTime = DateTime.MinValue;
 
@@ -55,7 +61,7 @@ try
 
     var context = new ClientContext(siteUrl);
 
-    var solerManager = new SolrManager(http, siteUrl, "UAT");
+    var solerManager = new SolrManager(http, environment.Solr, environment.Milvus);
 
     context.ExecutingWebRequest += UpdateContextToken;
     http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
@@ -124,7 +130,7 @@ try
                 Console.WriteLine($"{i} --Guid item: {activo}");
 
 
-                var item = FindItem(listas, new Guid(activo), context, ref listaProbable);
+                var item = FindItem(listas, new Guid(activo), context, searchService, ref listaProbable);
                 if (item == null)
                     continue;
 
@@ -234,7 +240,7 @@ try
                     context.ExecutingWebRequest -= UpdateContextToken;
                     context.ExecutingWebRequest += UpdateContextToken;
 
-                    await sp.UpdateCantActivosAsync(it.Id, i++);
+                    await sp.UpdateCantActivosAsync(it.Id, i);
                 }
                 catch (Exception ex)
                 {
@@ -329,6 +335,7 @@ async Task<string> ManejarPausaPorSchedule(
 {
     var libraryNames = new List<string>
     {
+        "Jurisprudencia Adm",
         "Documento",
         "Agenda",
         "Doctrina",
@@ -347,7 +354,7 @@ async Task<string> ManejarPausaPorSchedule(
     foreach (var name in libraryNames)
     {
         var list = context.Web.Lists.GetByTitle(name);
-        context.Load(list);
+        context.Load(list, l => l.Title, l => l.Id);
         listas.Add(list);
     }
 
@@ -358,54 +365,115 @@ async Task<string> ManejarPausaPorSchedule(
 
 static ListItem GetItemByUniqueId(ClientContext ctx, List listaProbable, Guid uniqueId)
 {
+    // List.GetItemByUniqueId es un lookup directo (no escanea la lista), pero en la práctica
+    // resulta poco confiable en SharePoint Online: puede lanzar ServerException
+    // ("Value does not fall within the expected range") incluso para items que sí existen,
+    // ya que depende de un servicio interno de resolución de docid que no siempre indexa
+    // todos los items correctamente. Se intenta igual porque cuando funciona es rápido.
+    ListItem item;
     try
+    {
+        item = listaProbable.GetItemByUniqueId(uniqueId);
+        ctx.Load(item);
+        ctx.ExecuteQuery();
+    }
+    catch (Exception ex)
+    {
+        string listaNombre;
+        try { listaNombre = listaProbable.Title; }
+        catch { listaNombre = "(desconocida)"; }
+
+        Console.WriteLine($"⚠ GetItemByUniqueId falló en lista '{listaNombre}' para {uniqueId}: {ex.Message}");
+        return null;
+    }
+
+    try
+    {
+        ctx.Load(item, i => i.ContentType, i => i.ParentList, i => i.ParentList.Fields, i => i["eolShpTema"], i => i["eolShpCodigoMislibros"]);
+        ctx.ExecuteQuery();
+    }
+    catch
+    {
+        ctx.Load(item, i => i.ContentType, i => i.ParentList, i => i.ParentList.Fields, i => i["eolShpTema"]);
+        ctx.ExecuteQuery();
+    }
+
+    return item;
+}
+
+static ListItem GetItemByUniqueIdPagedScan(ClientContext ctx, List lista, Guid uniqueId)
+{
+    // Fallback garantizado: pagina la lista SIN cláusula WHERE (ordenada por ID), comparando
+    // el GUID en memoria por cada batch. Se cargan solo Id+GUID durante el escaneo para no
+    // sobrecargar la consulta; una vez encontrado el match, se recarga el item completo
+    // (todos los campos) igual que hace GetItemByUniqueId.
+    // Una consulta paginada sin filtro no dispara el List View Threshold (el umbral solo
+    // aplica cuando SharePoint debe escanear+filtrar por un campo no indexado).
+    string targetGuid = uniqueId.ToString();
+    ListItemCollectionPosition position = null;
+    int totalEscaneados = 0;
+
+    string listaNombre;
+    try { listaNombre = lista.Title; }
+    catch { listaNombre = "(desconocida)"; }
+
+    do
     {
         var query = new CamlQuery
         {
-            ViewXml = $@"
+            ListItemCollectionPosition = position,
+            ViewXml = @"
                         <View Scope='RecursiveAll'>
                             <Query>
-                                <Where>
-                                    <Eq>
-                                        <FieldRef Name='GUID' />
-                                        <Value Type='Guid'>{uniqueId}</Value>
-                                    </Eq>
-                                </Where>
+                                <OrderBy><FieldRef Name='ID' /></OrderBy>
                             </Query>
-                            <RowLimit>1</RowLimit>
+                            <ViewFields>
+                                <FieldRef Name='ID' /><FieldRef Name='GUID' />
+                            </ViewFields>
+                            <RowLimit>2000</RowLimit>
                         </View>"
         };
 
-        var items = listaProbable.GetItems(query);
-        ctx.Load(items);
+        var items = lista.GetItems(query);
+        ctx.Load(items, coll => coll.Include(i => i.Id, i => i["GUID"]), coll => coll.ListItemCollectionPosition);
         ctx.ExecuteQuery();
 
-        if (items.Count > 0)
+        totalEscaneados += items.Count;
+
+        foreach (var candidato in items)
         {
-            var item = items[0];
-
-            //ctx.Load(item, i => i.ContentType, i => i.ParentList );
-            try
+            var guidValue = candidato["GUID"]?.ToString()?.Trim('{', '}');
+            if (string.Equals(guidValue, targetGuid, StringComparison.OrdinalIgnoreCase))
             {
-                ctx.Load(item, i => i.ContentType, i => i.ParentList, i => i.ParentList.Fields, i => i["eolShpTema"], i => i["eolShpCodigoMislibros"]);
-                ctx.ExecuteQuery();
-            }
-            catch
-            {
-                ctx.Load(item, i => i.ContentType, i => i.ParentList, i => i.ParentList.Fields, i => i["eolShpTema"]);
-                ctx.ExecuteQuery();
-            }
+                Console.WriteLine($"✔ Encontrado por escaneo paginado en '{listaNombre}' (ID {candidato.Id}) tras escanear {totalEscaneados} items.");
 
-            return item;
+                var item = candidato;
+
+                // Recargar el item completo (todos los campos), ya que el escaneo solo
+                // trajo Id+GUID para no sobrecargar la paginación.
+                ctx.Load(item);
+                ctx.ExecuteQuery();
+
+                try
+                {
+                    ctx.Load(item, i => i.ContentType, i => i.ParentList, i => i.ParentList.Fields, i => i["eolShpTema"], i => i["eolShpCodigoMislibros"]);
+                    ctx.ExecuteQuery();
+                }
+                catch
+                {
+                    ctx.Load(item, i => i.ContentType, i => i.ParentList, i => i.ParentList.Fields, i => i["eolShpTema"]);
+                    ctx.ExecuteQuery();
+                }
+
+                return item;
+            }
         }
-    }
-    catch (Exception Ex)
-    {
-        Console.WriteLine("Error" + Ex);
-        // ignorar listas que fallen
-    }
 
+        position = items.ListItemCollectionPosition;
+    }
+    while (position != null);
 
+    Console.WriteLine($"✘ No se encontró {uniqueId} en '{listaNombre}' tras escanear {totalEscaneados} items.");
     return null;
 }
 
@@ -417,10 +485,10 @@ string GetString(JsonElement el, string prop)
     return null;
 }
 
-ListItem FindItem(List<List> listas, Guid guid, ClientContext ctx, ref List listaProbable)
+ListItem FindItem(List<List> listas, Guid guid, ClientContext ctx, SearchService searchService, ref List listaProbable)
 {
-
-    foreach (var lista in listas)
+    // 1) Intentar List.GetItemByUniqueId (rápido cuando funciona, pero poco confiable en SPO).
+    /*foreach (var lista in listas)
     {
         var item = GetItemByUniqueId(ctx, lista, guid);
 
@@ -429,6 +497,93 @@ ListItem FindItem(List<List> listas, Guid guid, ClientContext ctx, ref List list
             listaProbable = lista;
             return item;
         }
+    }*/
+
+    // 2) Fallback garantizado: escaneo paginado (sin WHERE) por cada lista. Más lento, pero
+    //    no depende de Search ni del docid interno, así que siempre encuentra el item si existe.
+    foreach (var lista in listas)
+    {
+        var item = GetItemByUniqueIdPagedScan(ctx, lista, guid);
+
+        if (item != null)
+        {
+            listaProbable = lista;
+            return item;
+        }
+    }
+
+    return null;
+}
+
+ListItem GetItemByGuidViaSearch(ClientContext ctx, SearchService searchService, Guid guid, ref List listaProbable)
+{
+    try
+    {
+        var hit = searchService.ObtenerElementoPorGuid(guid.ToString());
+        if (hit == null || string.IsNullOrWhiteSpace(hit.Path))
+            return null;
+
+        var uri = new Uri(hit.Path);
+        ListItem item;
+
+        if (uri.AbsolutePath.EndsWith("DispForm.aspx", StringComparison.OrdinalIgnoreCase))
+        {
+            // El resultado apunta a un item de lista (no a un documento), típicamente:
+            // .../Lists/NombreLista/Forms/DispForm.aspx?ID=123
+            var idText = GetQueryStringValue(uri, "ID");
+            if (string.IsNullOrEmpty(idText) || !int.TryParse(idText, out var itemId))
+                return null;
+
+            var listServerRelativeUrl = uri.AbsolutePath;
+            var formsIndex = listServerRelativeUrl.IndexOf("/Forms/", StringComparison.OrdinalIgnoreCase);
+            listServerRelativeUrl = formsIndex >= 0
+                ? listServerRelativeUrl[..formsIndex]
+                : listServerRelativeUrl[..listServerRelativeUrl.LastIndexOf('/')];
+
+            var list = ctx.Web.GetList(listServerRelativeUrl);
+            item = list.GetItemById(itemId);
+        }
+        else
+        {
+            // El resultado apunta a un archivo/documento.
+            var file = ctx.Web.GetFileByServerRelativeUrl(uri.AbsolutePath);
+            ctx.Load(file, f => f.ListItemAllFields);
+            ctx.ExecuteQuery();
+
+            item = file.ListItemAllFields;
+        }
+
+        try
+        {
+            ctx.Load(item, i => i.ContentType, i => i.ParentList, i => i.ParentList.Fields, i => i["eolShpTema"], i => i["eolShpCodigoMislibros"]);
+            ctx.ExecuteQuery();
+        }
+        catch
+        {
+            ctx.Load(item, i => i.ContentType, i => i.ParentList, i => i.ParentList.Fields, i => i["eolShpTema"]);
+            ctx.ExecuteQuery();
+        }
+
+        listaProbable = item.ParentList;
+        return item;
+    }
+    catch (Exception ex)
+    {
+        // El resultado de búsqueda puede estar obsoleto (item movido/eliminado) o aún no indexado;
+        // en ese caso se recurre al fallback por CAML.
+        Console.WriteLine($"⚠ Búsqueda por GUID falló para {guid}, se usará fallback CAML: {ex.Message}");
+        return null;
+    }
+}
+
+string GetQueryStringValue(Uri uri, string name)
+{
+    var query = uri.Query.TrimStart('?');
+    foreach (var pair in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+    {
+        var kv = pair.Split('=', 2);
+        if (kv.Length == 2 && string.Equals(Uri.UnescapeDataString(kv[0]), name, StringComparison.OrdinalIgnoreCase))
+            return Uri.UnescapeDataString(kv[1]);
     }
 
     return null;
@@ -532,7 +687,7 @@ async Task ProcesarEnMilvusAsync(
         string json = JsonConvert.SerializeObject(itemFormateado, Newtonsoft.Json.Formatting.Indented);
 
         // Enviar a Milvus
-        var milvusResult = await MilvusManager.EnviarAMilvus(client, json, itemId, useIA);
+        var milvusResult = await MilvusManager.EnviarAMilvus(client, json, itemId, environment.Milvus, useIA);
 
         if (milvusResult.ok)
         {

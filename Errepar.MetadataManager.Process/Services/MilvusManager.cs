@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Errepar.MetadataManager.Process.Config;
 
 namespace Errepar.MetadataManager.Process.Services
 {
@@ -18,10 +19,8 @@ namespace Errepar.MetadataManager.Process.Services
         private readonly HttpClient _http;
         private readonly string _milvusBaseUrl;
 
-        public static async Task<(bool ok, string msg)> EnviarAMilvus(HttpClient client, string json, int id, bool isIA = false)
+        public static async Task<(bool ok, string msg)> EnviarAMilvus(HttpClient client, string json, int id, MilvusSettings settings, bool isIA = false)
         {
-            //string bodyTokenMilvus = "{\"key\":\"e5169fe4-1c39-4356-b148-1f210cc2431b\"}";
-            //string urlTokenMilvus = "https://accounts.errepar.com/eauth/auth/job/getJobCredentialsEAuth";
             const int maxIntentos = 3;
             const int delayEntreIntentos = 5000; // 5 segundos
 
@@ -36,7 +35,7 @@ namespace Errepar.MetadataManager.Process.Services
                 {
                     Console.WriteLine($"🔄 MilvusManager - Intento {intentoActual}/{maxIntentos} para elemento {id}");
 
-                    resultado = await EnviarAMilvusInterno(client, json, id, isIA);
+                    resultado = await EnviarAMilvusInterno(client, json, id, settings, isIA);
 
                     if (resultado.ok)
                     {
@@ -76,12 +75,10 @@ namespace Errepar.MetadataManager.Process.Services
             return (false, $"Falló después de {maxIntentos} intentos. Último error: {resultado.msg}");
         }
 
-        private static async Task<(bool ok, string msg)> EnviarAMilvusInterno(HttpClient client, string json, int id, bool isIA)
+        private static async Task<(bool ok, string msg)> EnviarAMilvusInterno(HttpClient client, string json, int id, MilvusSettings settings, bool isIA)
         {
-            //string bodyTokenMilvus = "{\"key\":\"e5169fe4-1c39-4356-b148-1f210cc2431b\"}";
-            string bodyTokenMilvus = "{\"key\":\"e5169fe4-1c39-4356-b148-1f210cc2431b\"}";
-            string urlTokenMilvus = "https://accounts.uat.errepar.com/syserrepar/integration/authenticationandauthorization/e-auth-api/auth/job/getJobCredentialsEAuth";
-            //string urlTokenMilvus = "https://accounts.uat.errepar.com/eauth/auth/job/getJobCredentialsEAuth";
+            string bodyTokenMilvus = "{\"key\":\"" + settings.ApiKey + "\"}";
+            string urlTokenMilvus = settings.AuthEndpoint;
 
             var httpRequestToken = new HttpRequestMessage
             {
@@ -101,7 +98,7 @@ namespace Errepar.MetadataManager.Process.Services
                 string responseBody = await response2.Content.ReadAsStringAsync();
                 string jwt2 = JsonDocument.Parse(responseBody).RootElement.GetProperty("jwt2").GetString();
 
-                string urlMilvus = "https://api.uat.errepar.com/syserrepar/embeddeddocumentai/loadAssetToMilvus?useSearchTermsGeneration=" + isIA;
+                string urlMilvus = $"{settings.LoadAssetEndpoint}?useSearchTermsGeneration={isIA}";
 
                 var httpRequestMilvus = new HttpRequestMessage
                 {

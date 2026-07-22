@@ -33,11 +33,18 @@ namespace Errepar.MetadataManager.Process.Models
 
             var resultadosJson = new List<Dictionary<string, object>>();
 
+            // "UniqueId" no siempre es una propiedad administrada confiable para búsqueda exacta
+            // (el valor crawleado difiere entre documentos e items de lista). La propiedad
+            // administrada oculta "NormUniqueID" sí es consultable y se popula de forma
+            // consistente para ambos casos: GUID en minúsculas, sin llaves.
+            var normalizedGuid = shpItemGUID.Trim('{', '}').ToLowerInvariant();
+            var uniqueIdQueryText = $"NormUniqueID:{normalizedGuid}";
+
             while (true)
             {
                 KeywordQuery keywordQuery = new KeywordQuery(_context)
                 {
-                    QueryText = shpItemGUID,
+                    QueryText = uniqueIdQueryText,
                     //QueryText = $"Site:\"https://erreparsa.sharepoint.com/sites/ErreparDesarrollo\"",
                     RowLimit = batchSize,
                     StartRow = startRow

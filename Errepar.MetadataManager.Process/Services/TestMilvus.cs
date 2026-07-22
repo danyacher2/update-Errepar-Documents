@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Errepar.MetadataManager.Process.Config;
 
 namespace Errepar.MetadataManager.Process.Services
 {
@@ -18,12 +19,13 @@ namespace Errepar.MetadataManager.Process.Services
         private string? _cachedToken;
         private DateTime _tokenExpiration;
 
-        public TestMilvus(HttpClient? httpClient = null)
+        public TestMilvus(HttpClient? httpClient = null, MilvusSettings? settings = null)
         {
             _http = httpClient ?? new HttpClient();
-            _authEndpoint = "https://accounts.uat.errepar.com/syserrepar/integration/authenticationandauthorization/e-auth-api/auth/job/getJobCredentialsEAuth";
-            _milvusEndpoint = "https://api.uat.errepar.com/syserrepar/embeddeddocumentai/searchByTimestamp";
-            _apiKey = "e5169fe4-1c39-4356-b148-1f210cc2431b";
+            var milvusSettings = settings ?? EnvironmentConfig.Uat.Milvus;
+            _authEndpoint = milvusSettings.AuthEndpoint;
+            _milvusEndpoint = milvusSettings.SearchByTimestampEndpoint;
+            _apiKey = milvusSettings.ApiKey;
         }
 
         /// <summary>

@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using Newtonsoft.Json;
+using Errepar.MetadataManager.Process.Config;
 
 namespace Errepar.MetadataManager.Process.Services
     {
@@ -19,13 +20,14 @@ namespace Errepar.MetadataManager.Process.Services
     public class SolrManager
         {
         private readonly HttpClient _http;
-        private readonly string _solrBaseUrl; // p. ej. http://localhost:8983/solr/yourcore;
-        private readonly string _ambiente = "UAT";
-        public SolrManager(HttpClient httpClient, string solrBaseUrl, string ambiente)
+        private readonly SolrSettings _solrSettings;
+        private readonly MilvusSettings _milvusSettings;
+
+        public SolrManager(HttpClient httpClient, SolrSettings solrSettings, MilvusSettings milvusSettings)
             {
             _http = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-            _solrBaseUrl = solrBaseUrl?.TrimEnd('/') ?? throw new ArgumentNullException(nameof(solrBaseUrl));
-            _ambiente = ambiente.ToUpperInvariant();
+            _solrSettings = solrSettings ?? throw new ArgumentNullException(nameof(solrSettings));
+            _milvusSettings = milvusSettings ?? throw new ArgumentNullException(nameof(milvusSettings));
             }
 
         public async Task<(bool ok, string msg)> AtomicUpdateSolrMultiple(string guid, Dictionary<string, object> campos, int idElemento)
@@ -80,7 +82,7 @@ namespace Errepar.MetadataManager.Process.Services
                 {
                     Console.WriteLine($"🔄 SolrManager - Intento {intentoActual}/{maxIntentos} para elemento {idElemento}");
 
-                    resultado = await EnviarASolr(jsonPayload, idElemento, _ambiente);
+                    resultado = await EnviarASolr(jsonPayload, idElemento);
                     await Task.Delay(30);
 
                     if (resultado.ok)
@@ -117,16 +119,10 @@ namespace Errepar.MetadataManager.Process.Services
             return (false, $"Falló después de {maxIntentos} intentos. Último error: {resultado.msg}");
         }
 
-        public async Task<(bool ok, string msg)> EnviarASolr(string json, int id, string ambiente)
+        public async Task<(bool ok, string msg)> EnviarASolr(string json, int id)
             {
-            //string user = "Basic " +  Base64Encode("uat-solr-acess:SXtuCde9&JW%pkAK");
-
-            string user = "Basic " + (ambiente.Equals("PROD") ? Base64Encode("admin:6s2HUXFb8la") : Base64Encode("uat-solr-acess:SXtuCde9&JW%pkAK"));
-            //string urlSolr = ambiente.Equals("PROD") ? "https://solr-prod-hcs.errepar.com/solr/prodActivos02/update/json/docs?commit=true" : "https://solr.errepar.com/solr/prodActivos01/update/json/docs?commit=true";
-            string urlSolr = "https://solr.uat.errepar.com/solr/prodActivos02/update?commit=true";
-            //string urlSolr = "https://solr.uat.errepar.com/solr/prodActivos02/update/json/docs?commit=true";
-
-            //string urlSolr = "https://solr.errepar.com/solr/prodActivos02/update?commit=true";
+            string user = "Basic " + Base64Encode($"{_solrSettings.User}:{_solrSettings.Password}");
+            string urlSolr = _solrSettings.UpdateUrl;
 
             // Crear un NUEVO HttpRequestMessage en cada llamada (no reutilizar)
             using var httpRequestMessage = new HttpRequestMessage
@@ -169,7 +165,7 @@ namespace Errepar.MetadataManager.Process.Services
             return System.Convert.ToBase64String(plainTextBytes);
             }
 
-        public async void EliminarDeSolr(string eolShpTimeStamp, string ambiente)
+        public async void EliminarDeSolr(string eolShpTimeStamp)
         {
             //string jsonData = "{\"delete\":{\"query\":\"eolShpTimeStamp:\"" + eolShpTimeStamp + "\"\"}}";
            // string jsonData = "{'delete':{'eolShpTimeStamp:" + eolShpTimeStamp + "'}}";
@@ -195,8 +191,8 @@ namespace Errepar.MetadataManager.Process.Services
             string json = JsonConvert.SerializeObject(payload);
            // string json = JsonConvert.SerializeObject(jsonData);
 
-            string user = "Basic " + (ambiente.Equals("PROD") ? Base64Encode("admin:T0m4t1t02023*") : Base64Encode("uat-solr-acess:SXtuCde9&JW%pkAK"));
-            string urlSolr = ambiente.Equals("PROD") ? "https://solr-prod-hcs.errepar.com/solr/prodActivos02/update?commit=true" : "https://solr.uat.errepar.com/solr/prodActivos02/update?commit=true";
+            string user = "Basic " + Base64Encode($"{_solrSettings.User}:{_solrSettings.Password}");
+            string urlSolr = _solrSettings.UpdateUrl;
             HttpContent content = new StringContent(json, Encoding.UTF8, "application/json");
             var httpRequestMessage = new HttpRequestMessage
             {
@@ -224,9 +220,8 @@ namespace Errepar.MetadataManager.Process.Services
 
         private async Task<(bool ok, string msg)> EliminarDeMilvus(string eolShpTimeStamp)
         {
-            string bodyTokenMilvus = "{\"key\":\"e5169fe4-1c39-4356-b148-1f210cc2431b\"}";
-            //string urlTokenMilvus = "https://accounts.errepar.com/eauth/auth/job/getJobCredentialsEAuth";
-            string urlTokenMilvus = "https://accounts.uat.errepar.com/syserrepar/integration/authenticationandauthorization/e-auth-api/auth/job/getJobCredentialsEAuth";
+            string bodyTokenMilvus = "{\"key\":\"" + _milvusSettings.ApiKey + "\"}";
+            string urlTokenMilvus = _milvusSettings.AuthEndpoint;
 
             var httpRequestToken = new HttpRequestMessage
             {
@@ -246,8 +241,7 @@ namespace Errepar.MetadataManager.Process.Services
                 string responseBody = await response2.Content.ReadAsStringAsync();
                 string jwt2 = JsonDocument.Parse(responseBody).RootElement.GetProperty("jwt2").GetString();
                 //Console.WriteLine(GetResponseBodyAsync(response2));
-                //string urlMilvus = "https://api.errepar.com/syserrepar/embeddeddocumentai/deleteAssetMilvus?eolShpTimeStamp=" + eolShpTimeStamp;
-                string urlMilvus = "https://api.uat.errepar.com/syserrepar/embeddeddocumentai/deleteAssetMilvus?eolShpTimeStamp=" + eolShpTimeStamp;
+                string urlMilvus = $"{_milvusSettings.DeleteAssetEndpoint}?eolShpTimeStamp={eolShpTimeStamp}";
 
                 var httpRequestMilvus = new HttpRequestMessage
                 {

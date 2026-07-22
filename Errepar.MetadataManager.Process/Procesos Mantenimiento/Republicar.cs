@@ -1,4 +1,5 @@
 ﻿using Errepar.MetadataManager.Process.Auth;
+using Errepar.MetadataManager.Process.Config;
 using Errepar.MetadataManager.Process.Services;
 using Microsoft.SharePoint.Client;
 using Newtonsoft.Json;
@@ -13,17 +14,17 @@ namespace Errepar.MetadataManager.Process.Procesos_Mantenimiento
 {
     internal class Republicar
     {
-        public async Task SoleryMulvus()
+        public async Task SoleryMulvus(string ambiente = "UAT")
         {
             Console.WriteLine("Consulta a SharePoint: recuperar items con EstadoProceso = Pendiente | En Pausa");
 
-            string siteUrl = "https://erreparsa.sharepoint.com/sites/ErreparDesarrollo";
-            string tenantId = "00f26ad1-2073-4746-a79f-c83061db35c0";
-            //string clientId = "8688eed4-7464-4288-9820-34849fd19296";//erreparDesarrollo
-            string clientId = "f679c472-7b0c-45dc-b38c-cca0b662f77a";//erreparDev
+            var environment = EnvironmentConfig.Resolve(ambiente);
 
-            string certificateThumbprint = Environment.GetEnvironmentVariable("CERT_THUMBPRINT")
-                ?? "452079A2697BC9646023FAE02876488654BBDB2C";
+            string siteUrl = environment.SharePoint.SiteUrl;
+            string tenantId = environment.SharePoint.TenantId;
+            string clientId = environment.SharePoint.ClientId;
+            string certificateThumbprint = environment.SharePoint.CertificateThumbprint;
+
             var authToken = await TokenProvider.GetSharePointTokenWithCertificateThumbprintAsync(tenantId, clientId, certificateThumbprint, siteUrl);
 
             // Configurar HttpClientHandler para aceptar certificados SSL y manejar problemas DNS (necesario para UAT/VPN)
@@ -46,7 +47,7 @@ namespace Errepar.MetadataManager.Process.Procesos_Mantenimiento
 
             var context = new ClientContext(siteUrl);
 
-            var solerManager = new SolrManager(http, siteUrl, "UAT");
+            var solerManager = new SolrManager(http, environment.Solr, environment.Milvus);
 
             context.ExecutingWebRequest += (sender, e) =>
             {
@@ -151,7 +152,7 @@ namespace Errepar.MetadataManager.Process.Procesos_Mantenimiento
                                 if (timeStamp != null && timeStamp != "")
                                 {
                                     //elimino si existe en soler o milvus
-                                    solerManager.EliminarDeSolr(timeStamp, "UAT");
+                                    solerManager.EliminarDeSolr(timeStamp);
                                     await Task.Delay(30);
                                 }
                             }
@@ -205,7 +206,7 @@ namespace Errepar.MetadataManager.Process.Procesos_Mantenimiento
                          }}
                      ]";
                             //Console.WriteLine(jsonPayload);
-                            var resultado = await solerManager.EnviarASolr(jsonPayload, item.Id, "UAT");
+                            var resultado = await solerManager.EnviarASolr(jsonPayload, item.Id);
                             await Task.Delay(30);
 
                             if (resultado.ok)
@@ -222,7 +223,7 @@ namespace Errepar.MetadataManager.Process.Procesos_Mantenimiento
 
                             string json = JsonConvert.SerializeObject(itemFormateado, Newtonsoft.Json.Formatting.Indented);
                             // Enviar a Milvus
-                            var milvusResult = await MilvusManager.EnviarAMilvus(http, json, item.Id, false);
+                            var milvusResult = await MilvusManager.EnviarAMilvus(http, json, item.Id, environment.Milvus, false);
 
                             if (milvusResult.ok)
                             {
