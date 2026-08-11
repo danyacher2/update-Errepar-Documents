@@ -100,11 +100,14 @@ namespace Errepar.MetadataManager.Process.Config
                 // NOTA: en SolrManager.EliminarDeSolr aparecía además el host alternativo
                 // "https://solr-prod-hcs.errepar.com/solr/prodActivos02/update?commit=true"; confirmar cuál está vigente.
                 UpdateUrl = "https://solr.errepar.com/solr/prodActivos02/update?commit=true",
-                User = "admin",
+                //User = "admin",
                 // NOTA: se encontraron dos passwords distintas para "admin" en el código
                 // (SolrManager.EnviarASolr: "6s2HUXFb8la", SolrManager.EliminarDeSolr: "T0m4t1t02023*").
                 // Se usa la documentada en DOCUMENTACION_METADATA_MANAGER.md; confirmar cuál es la vigente.
-                Password = "6s2HUXFb8la"
+                //Password = "6s2HUXFb8la"
+            
+                User = "sa-sharepoint-prod",
+                Password = "37jtgn%ds5RGJz$9pX7H7#mot"
             },
             Milvus = new MilvusSettings
             {
@@ -141,7 +144,7 @@ namespace Errepar.MetadataManager.Process.Config
         /// </summary>
         public static EnvironmentSettings ResolveFromArgs(string[]? args)
         {
-            string? ambiente = "PROD";
+            string? ambiente = "UAT";
 
             if (args != null)
             {

@@ -37,6 +37,9 @@ namespace Errepar.MetadataManager.Process.Services
 
                     resultado = await EnviarAMilvusInterno(client, json, id, settings, isIA);
 
+                    await Task.Delay(20000);
+
+
                     if (resultado.ok)
                     {
                         if (intentoActual > 1)
