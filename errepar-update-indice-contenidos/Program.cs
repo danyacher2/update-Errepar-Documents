@@ -1,5 +1,7 @@
 using Errepar.MetadataManager.Process.Auth;
 using Errepar.MetadataManager.Process.Config;
+using Errepar.MetadataManager.Process.Models;
+using Errepar.MetadataManager.Process.Services;
 using Microsoft.SharePoint.Client;
 using System.Text.Json;
 
@@ -25,6 +27,9 @@ if (document.RootElement.ValueKind != JsonValueKind.Array)
 
 var lists = LoadSharePointLibraries(context);
 context.ExecuteQuery();
+var http= new HttpClient();
+var cambios = new ProcesarCambios(http, context, sharePoint.SiteUrl, new LogsManager(http, sharePoint.SiteUrl, "update-errepar-document"), new SearchService(context));
+
 
 foreach (var entry in document.RootElement.EnumerateArray())
 {
@@ -42,14 +47,15 @@ foreach (var entry in document.RootElement.EnumerateArray())
             Console.WriteLine($"GUID {guid}: no encontrado");
             continue;
         }
-
         Console.WriteLine($"GUID {guid} | Título: {item["Title"]}");
+        cambios.AgregarIndice(item, "guid","name");
     }
     catch (Exception exception)
     {
         Console.WriteLine($"GUID {guid}: error durante la búsqueda: {exception.Message}");
     }
 }
+
 
 string? FindDataFile()
 {

@@ -40,6 +40,58 @@ namespace Errepar.MetadataManager.Process.Services
             _searchService = searchService ?? throw new ArgumentNullException(nameof(searchService));
         }
 
+        public bool AgregarIndice(ListItem item, string taxGuid, string taxName)
+        {
+            this._context.Load(item);
+            this._context.ExecuteQuery();
+
+            string fieldName = "eolShpIndiceContenidosEOL";
+            var field = item.ParentList.Fields.GetByInternalNameOrTitle(fieldName);
+            this._context.Load(field);
+            this._context.ExecuteQuery();
+
+            var taxField = _context.CastTo<TaxonomyField>(field);
+
+            if (string.IsNullOrWhiteSpace(taxGuid))
+                return false;
+            var termStrings = new List<string>();
+
+            if (item[fieldName] != null)
+            {
+                var currentCollection = item[fieldName] as TaxonomyFieldValueCollection;
+
+                if (currentCollection != null)
+                {
+                    foreach (var t in currentCollection)
+                    {
+                        if (t.TermGuid.Equals(taxGuid, StringComparison.OrdinalIgnoreCase))
+                            return false;
+
+                        termStrings.Add($"-1;#{t.Label}|{t.TermGuid}");
+                    }
+                }
+            }
+
+            var nombreFinal = taxName.Contains(":")
+                ? taxName.Split(':').Last()
+                : taxName;
+
+            termStrings.Add($"-1;#{nombreFinal}|{taxGuid}");
+
+            string nuevoValorInterno = string.Join(";#", termStrings);
+
+            var nuevaCollection = new TaxonomyFieldValueCollection(
+                this._context,
+                nuevoValorInterno,
+                taxField);
+
+            taxField.SetFieldValueByValueCollection(item, nuevaCollection);
+
+            //item.SystemUpdate();
+
+            // ✅ No llamar item.Update() aquí - se llama SystemUpdate() desde Program.cs
+            return true;
+        }
         public void Procesar(ListItem sharepointItem, JsonElement cambio, int itemId)
         {
             var action = GetString(cambio, "action");

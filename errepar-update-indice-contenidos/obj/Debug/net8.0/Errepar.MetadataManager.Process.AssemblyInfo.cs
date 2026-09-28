@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Errepar.MetadataManager.Process")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5842944512e97cae345f54259e22f8791723141d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4623d1d6d90768d532e3977f9fbbd3c1ffd1707f")]
 [assembly: System.Reflection.AssemblyProductAttribute("Errepar.MetadataManager.Process")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Errepar.MetadataManager.Process")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
