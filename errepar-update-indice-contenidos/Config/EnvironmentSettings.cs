@@ -59,10 +59,8 @@ namespace Errepar.MetadataManager.Process.Config
             {
                 SiteUrl = "https://erreparsa.sharepoint.com/sites/ErreparDesarrollo",
                 TenantId = "00f26ad1-2073-4746-a79f-c83061db35c0",
-                ClientId = "f679c472-7b0c-45dc-b38c-cca0b662f77a", // erreparDev
-                CertificateThumbprint = Environment.GetEnvironmentVariable("CERT_THUMBPRINT_UAT")
-                    ?? Environment.GetEnvironmentVariable("CERT_THUMBPRINT")
-                    ?? "452079A2697BC9646023FAE02876488654BBDB2C"
+                ClientId = "8688eed4-7464-4288-9820-34849fd19296", // erreparDev
+                CertificateThumbprint = "7BA783C08AEA10B3C35979E64388A404D4292ECA"
             },
             Solr = new SolrSettings
             {
