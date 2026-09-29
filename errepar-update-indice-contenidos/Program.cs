@@ -48,7 +48,10 @@ foreach (var entry in document.RootElement.EnumerateArray())
             continue;
         }
         Console.WriteLine($"GUID {guid} | Título: {item["Title"]}");
-        cambios.AgregarIndice(item, "guid","name");
+        var actualizado = cambios.AgregarIndice(item, "57adaa13-b243-4d51-8d41-65062d30bd75", "Tratados con Jerarquía Constitucional");
+        Console.WriteLine(actualizado
+            ? $"GUID {guid}: índice guardado en SharePoint"
+            : $"GUID {guid}: sin cambios (índice existente o GUID de término vacío)");
     }
     catch (Exception exception)
     {

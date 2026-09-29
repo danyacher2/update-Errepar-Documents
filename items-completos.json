@@ -1,0 +1,953 @@
+[
+  {
+    "Id": 116,
+    "UniqueId": "d8782a14-e587-4c5c-9aeb-d2da194b3845",
+    "Fields": {
+      "GUID": "d8782a14-e587-4c5c-9aeb-d2da194b3845",
+      "ContentTypeId": "0x010100EB44EE12E9257E42AAE868801C914FEA000A0A506FFC3157438B782852F62EB561",
+      "_ModerationStatus": 2,
+      "_ModerationComments": null,
+      "FileLeafRef": "20230725105701543.html",
+      "Modified_x0020_By": "i:0i.t|00000003-0000-0ff1-ce00-000000000000|app@sharepoint",
+      "Created_x0020_By": "i:0#.f|membership|svcplatform4@spcdn.errepar.com",
+      "File_x0020_Type": "html",
+      "HTML_x0020_File_x0020_Type": null,
+      "_SourceUrl": null,
+      "_SharedFileIndex": null,
+      "_ColorHex": null,
+      "_ColorTag": null,
+      "_Emoji": null,
+      "MediaGeneratedMetadata": null,
+      "MediaUserMetadata": null,
+      "ComplianceAssetId": null,
+      "Title": "An\u00E1lisis del capital de trabajo. Caracter\u00EDsticas",
+      "TemplateUrl": null,
+      "xd_ProgID": null,
+      "xd_Signature": null,
+      "_ShortcutUrl": null,
+      "_ShortcutSiteId": null,
+      "_ShortcutWebId": null,
+      "_ShortcutUniqueId": null,
+      "_ExtendedDescription": "Long Description",
+      "TriggerFlowInfo": null,
+      "eolShpTimeStamp": "20230725105701543",
+      "eolShpAreaTematica": {
+        "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValueCollection",
+        "_Child_Items_": [
+          {
+            "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValue",
+            "Label": "Administrativo",
+            "TermGuid": "d6458973-52a3-4902-9629-f1d6e1df55d3",
+            "WssId": 7
+          }
+        ]
+      },
+      "g28120d37db544c6aa6ebe918b2c7e31": "Administrativo|d6458973-52a3-4902-9629-f1d6e1df55d3",
+      "TaxCatchAll": [
+        {
+          "Id": 7495,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|gZVNQ5OyXUC6n15Xmv8\u002Bfw==|Y\u002BCiBUJeZU68w7oaNx9\u002BEQ=="
+        },
+        {
+          "Id": 7494,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|gZVNQ5OyXUC6n15Xmv8\u002Bfw==|ROk1x2BF10uXd/CKe8xXsA=="
+        },
+        {
+          "Id": 1016,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|5JKOuTKYyU6L8yuESl0P9A==|xHgP42\u002BKvEyMUR400AGt4A==|dJC3Q8BjG0ezsCHm9GHmGg==|bAggeJ2o\u002B0m4XQyY6xtEZg=="
+        },
+        {
+          "Id": 318,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|gZVNQ5OyXUC6n15Xmv8\u002Bfw==|Xf15MK8eH0aqzgASAKIwLw=="
+        },
+        {
+          "Id": 7,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|Ih6xQrtMgUmmzV6nPWvZ3g==|c4lF1qNSAkmWKfHW4d9V0w=="
+        },
+        {
+          "Id": 7501,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|2X/Osjn9SU\u002B1XE8DB6tDtQ==|IS7bh6SSKkGIiLquk24gYA==|cy4nE9312kW3\u002B5ednTRVYA==|UYIBEVugD0mnWKB9sFMMJw=="
+        },
+        {
+          "Id": 799,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|gZVNQ5OyXUC6n15Xmv8\u002Bfw==|oosk79BmxEabj8bQkoIA2w=="
+        }
+      ],
+      "eolShpSeccion": {
+        "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValueCollection",
+        "_Child_Items_": []
+      },
+      "e74c7963bd1547e18b37dfe00b908629": null,
+      "eolShpIndiceContenidosEOL": {
+        "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValueCollection",
+        "_Child_Items_": [
+          {
+            "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValue",
+            "Label": "Impuestos:Agenda Impositiva:2025. Liquidaci\u00F3n Ganancias - Bienes Personales",
+            "TermGuid": "87db2e21-92a4-412a-8888-baae936e2060",
+            "WssId": 7501
+          }
+        ]
+      },
+      "pfdb9deb116740fc82acc70cfa57bbcd": "2025. Liquidaci\u00F3n Ganancias - Bienes Personales|87db2e21-92a4-412a-8888-baae936e2060",
+      "eolShpIndiceContenidosIUS": {
+        "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValueCollection",
+        "_Child_Items_": []
+      },
+      "k843ded9b57541afb23535b3cdf4cfd6": null,
+      "eolShpIndiceContenidosOculto": {
+        "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValueCollection",
+        "_Child_Items_": [
+          {
+            "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValue",
+            "Label": "Aplicaci\u00F3n Pr\u00E1ctica:Colecci\u00F3n Pr\u00E1ctica:Balances",
+            "TermGuid": "e30f78c4-8a6f-4cbc-8c51-1e34d001ade0",
+            "WssId": 1016
+          }
+        ]
+      },
+      "d13c468c907a445dafc63fee1e6cc681": "Balances|e30f78c4-8a6f-4cbc-8c51-1e34d001ade0",
+      "eolShpAccesosRapidos": {
+        "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValueCollection",
+        "_Child_Items_": []
+      },
+      "g04cf80c6d6e4c20964b9614fcb58365": null,
+      "eolShpVoces": {
+        "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValueCollection",
+        "_Child_Items_": []
+      },
+      "kaeb46764e114b9ab890e604b58c8d0a": null,
+      "eolShpAnalisis": {
+        "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValueCollection",
+        "_Child_Items_": []
+      },
+      "d4138cf183234fffb1922580583ca273": null,
+      "eolShpFechaNovedad": null,
+      "eolShpMarcasCD": {
+        "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValueCollection",
+        "_Child_Items_": [
+          {
+            "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValue",
+            "Label": "agenda",
+            "TermGuid": "3079fd5d-1eaf-461f-aace-001200a2302f",
+            "WssId": 318
+          },
+          {
+            "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValue",
+            "Label": "legislacion",
+            "TermGuid": "ef248ba2-66d0-46c4-9b8f-c6d0928200db",
+            "WssId": 799
+          },
+          {
+            "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValue",
+            "Label": "Documento p\u00FAblico",
+            "TermGuid": "c735e944-4560-4bd7-9777-f08a7bcc57b0",
+            "WssId": 7494
+          },
+          {
+            "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValue",
+            "Label": "SOLO B\u00DASQUEDA",
+            "TermGuid": "05a2e063-5e42-4e65-bcc3-ba1a371f7e11",
+            "WssId": 7495
+          }
+        ]
+      },
+      "n6e957bddd23492da2e1dda76f7899b9": "agenda|3079fd5d-1eaf-461f-aace-001200a2302f;legislacion|ef248ba2-66d0-46c4-9b8f-c6d0928200db;Documento p\u00FAblico|c735e944-4560-4bd7-9777-f08a7bcc57b0;SOLO B\u00DASQUEDA|05a2e063-5e42-4e65-bcc3-ba1a371f7e11",
+      "eolShpOrden": null,
+      "eolShpClasificacion": 8,
+      "eolShpResumen": "Nuevo Valor Texto LArgo",
+      "eolShpResumenPublico": null,
+      "eolShpClasificacionAutomatica": 6,
+      "eolShpFechaClasificacionAutomatica": "2023-07-25T03:00:00Z",
+      "eolShpOrdenMail": null,
+      "eolShpNegocio": [
+        "Errepar"
+      ],
+      "eolShpPermalink": "analisis-del-capital-de-trabajo-caracteristicas-20230725105701543",
+      "eolShpMetaTitle": "Test",
+      "eolShpMetaDescription": null,
+      "eolShpFechaMail": null,
+      "eolShpGrupoResultados": null,
+      "eolShpFechaBusqueda": "2026-03-16T00:00:00Z",
+      "eolShpFechaCreacion": "2023-07-25T13:57:01Z",
+      "eolShpCanalPublicacion": [
+        " ",
+        "Publicaci\u00F3n Home",
+        "Columna derecha"
+      ],
+      "TaxCatchAllLabel": [
+        {
+          "Id": 7495,
+          "Value": "SOLO B\u00DASQUEDA#\u0409|"
+        },
+        {
+          "Id": 7494,
+          "Value": "Documento p\u00FAblico#\u0409|"
+        },
+        {
+          "Id": 1016,
+          "Value": "Balances#\u0409|"
+        },
+        {
+          "Id": 318,
+          "Value": "agenda#\u0409|"
+        },
+        {
+          "Id": 7,
+          "Value": "Administrativo#\u0409|"
+        },
+        {
+          "Id": 7501,
+          "Value": "2025. Liquidaci\u00F3n Ganancias - Bienes Personales#\u0409|"
+        },
+        {
+          "Id": 799,
+          "Value": "legislacion#\u0409|"
+        }
+      ],
+      "eolShpBuscable": true,
+      "lcf76f155ced4ddcb4097134ff3c332f": null,
+      "MediaServiceImageTags": {
+        "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValueCollection",
+        "_Child_Items_": []
+      },
+      "MediaServiceOCR": null,
+      "editarFormulario": null,
+      "Optimizacion": null,
+      "estadoOptimizacion": "Completado",
+      "eolShpMicrositios": null,
+      "eolShpResumenIA": null,
+      "j98ca55809194c70bd98433d2571653e": null,
+      "eolShpTema": {
+        "_ObjectType_": "SP.Taxonomy.TaxonomyFieldValueCollection",
+        "_Child_Items_": []
+      },
+      "eolShpContextoOrigen": null,
+      "eolShpReplaceDocID": null,
+      "MediaServiceMetadata": null,
+      "MediaServiceFastMetadata": null,
+      "MediaServiceSearchProperties": null,
+      "eolShpSeleccionEditor": null,
+      "EsCritico": null,
+      "ID": 116,
+      "Created": "2024-10-10T11:43:51Z",
+      "Author": {
+        "Id": 15,
+        "Value": "svcplatform4",
+        "Email": "svcplatform4@spcdn.errepar.com"
+      },
+      "Modified": "2026-03-24T15:35:48Z",
+      "Editor": {
+        "Id": 1073741822,
+        "Value": "Aplicaci\u00F3n de SharePoint",
+        "Email": ""
+      },
+      "_HasCopyDestinations": null,
+      "_CopySource": null,
+      "FileRef": "/sites/ErreparDesarrollo/Documento/00-sin-obra/2023/20230725105701543/20230725105701543.html",
+      "FileDirRef": "/sites/ErreparDesarrollo/Documento/00-sin-obra/2023/20230725105701543",
+      "Last_x0020_Modified": "2026-03-24T15:35:48Z",
+      "Created_x0020_Date": "2024-10-10T11:43:51Z",
+      "File_x0020_Size": "10998",
+      "FSObjType": "0",
+      "SortBehavior": {
+        "Id": 116,
+        "Value": "0"
+      },
+      "CheckedOutUserId": {
+        "Id": 116,
+        "Value": null
+      },
+      "IsCheckedoutToLocal": "0",
+      "CheckoutUser": null,
+      "UniqueId": "26d8f014-c377-499f-9bfa-e10959befdc6",
+      "ParentUniqueId": "{F0E51818-DA5F-4397-BCF3-A0432435984C}",
+      "SyncClientId": {
+        "Id": 116,
+        "Value": null
+      },
+      "ProgId": "",
+      "ScopeId": "{8F52762C-DB8B-4D47-B9E2-8198EABA17D8}",
+      "VirusStatus": {
+        "Id": 116,
+        "Value": "10998"
+      },
+      "CheckedOutTitle": {
+        "Id": 116,
+        "Value": null
+      },
+      "_CheckinComment": "",
+      "MetaInfo": "eolShpMarcasCD:SW|318;#agenda|3079fd5d-1eaf-461f-aace-001200a2302f;#799;#legislacion|ef248ba2-66d0-46c4-9b8f-c6d0928200db;#7494;#Documento p\u00FAblico|c735e944-4560-4bd7-9777-f08a7bcc57b0;#7495;#SOLO B\u00DASQUEDA|05a2e063-5e42-4e65-bcc3-ba1a371f7e11\r\n_SourceUrl:SW|\r\neolShpVoces:SW|\r\neolShpFechaClasificacionAutomatica:SW|2023-07-25T00:00:00Z\r\neolShpCanalPublicacion:SW|;# ;#Publicaci\u00F3n Home;#Columna derecha;#\r\neolShpResumenPublico:SW|\r\nvti_parserversion:SR|16.0.0.27118\r\npfdb9deb116740fc82acc70cfa57bbcd:SW|2025. Liquidaci\u00F3n Ganancias - Bienes Personales|87db2e21-92a4-412a-8888-baae936e2060\r\neolShpFechaMail:SW|\r\nxd_Signature:SW|\r\nvti_modifiedby:SR|i:0i.t|00000003-0000-0ff1-ce00-000000000000|app@sharepoint\r\nvti_copy_source_timelastmodified:SW|638528550180000000\r\ne74c7963bd1547e18b37dfe00b908629:SW|\r\nlcf76f155ced4ddcb4097134ff3c332f:SW|\r\neolShpMetaTitle:SW|Test\r\nvti_colortag:SW|\r\nvti_foldersubfolderitemcount:IR|0\r\nvti_shortcutuniqueid:SW|\r\nvti_title:SR|An\u00E1lisis del capital de trabajo. Caracter\u00EDsticas\r\nvti_shortcutsiteid:SW|\r\neolShpAreaTematica:SW|7;#Administrativo|d6458973-52a3-4902-9629-f1d6e1df55d3\r\neolShpBuscable:IW|1\r\nvti_author:SW|i:0#.f|membership|svcplatform4@spcdn.errepar.com\r\neolShpNegocio:SW|;#Errepar;#\r\nvti_copy_source_timecreated:SW|638521827460000000\r\neolShpFechaCreacion:SW|2023-07-25T10:57:01Z\r\nvti_copy_source_etag:SW|\u0022{BB88E957-1097-4D35-8FD1-AAD11F57DE08},6\u0022\r\nj98ca55809194c70bd98433d2571653e:SW|\r\neolShpClasificacion:DW|8.00000000000000\r\ng04cf80c6d6e4c20964b9614fcb58365:SW|\r\n_ExtendedDescription:SW|Long Description\r\neolShpOrdenMail:SW|\r\nvti_lcf76f155ced4ddcb4097134ff3c332f:SW|\r\nvti_commentcount:IR|0\r\nvti_emoji:SW|\r\neolShpAccesosRapidos:SW|\r\nvti_colorhex:SW|\r\nk843ded9b57541afb23535b3cdf4cfd6:SW|\r\nTaxCatchAll:SW|7495;#SOLO B\u00DASQUEDA|05a2e063-5e42-4e65-bcc3-ba1a371f7e11;#7494;#Documento p\u00FAblico|c735e944-4560-4bd7-9777-f08a7bcc57b0;#1016;#Balances|e30f78c4-8a6f-4cbc-8c51-1e34d001ade0;#318;#agenda|3079fd5d-1eaf-461f-aace-001200a2302f;#7;#Administrativo|d6458973-52a3-4902-9629-f1d6e1df55d3;#7501;#2025. Liquidaci\u00F3n Ganancias - Bienes Personales|87db2e21-92a4-412a-8888-baae936e2060;#799;#legislacion|ef248ba2-66d0-46c4-9b8f-c6d0928200db\r\nvti_folderitemcount:IR|0\r\nsearchable:IW|1\r\neolShpAnalisis:SW|\r\nd4138cf183234fffb1922580583ca273:SW|\r\nvti_mediausermetadata:SW|\r\neolShpOrden:SW|\r\neolShpClasificacionAutomatica:DW|6.00000000000000\r\neolShpPermalink:SW|analisis-del-capital-de-trabajo-caracteristicas-20230725105701543\r\nTriggerFlowInfo:SW|\r\neolShpSeccion:SW|\r\nn6e957bddd23492da2e1dda76f7899b9:SW|agenda|3079fd5d-1eaf-461f-aace-001200a2302f;legislacion|ef248ba2-66d0-46c4-9b8f-c6d0928200db;Documento p\u00FAblico|c735e944-4560-4bd7-9777-f08a7bcc57b0;SOLO B\u00DASQUEDA|05a2e063-5e42-4e65-bcc3-ba1a371f7e11\r\nvti_accesscontrolflags:IR|0\r\nvti_sourcesiteid:SW|c9624cb7-23fd-46c3-b09a-05aec0693de0\r\neolShpIndiceContenidosOculto:SW|1016;#Balances|e30f78c4-8a6f-4cbc-8c51-1e34d001ade0\r\nvti_mediageneratedmetadata:SW|\r\nComplianceAssetId:SW|\r\nvti_shortcutwebid:SW|\r\neolShpFechaNovedad:SW|\r\nvti_priorversioncreationtime:TR|24 Mar 2026 15:35:48 -0000\r\nvti_sourceitemid:SW|bb88e957-1097-4d35-8fd1-aad11f57de08\r\ndisplay_urn\\:schemas-microsoft-com\\:office\\:office#Author:SW|Daniel Acher\r\neditarFormulario:SW|\r\nvti_sourcewebid:SW|7a492a01-f5f5-489d-920b-a2eedbf3a2ca\r\neolShpTimeStamp:SW|20230725105701543\r\neolShpTema:SW|\r\nd13c468c907a445dafc63fee1e6cc681:SW|Balances|e30f78c4-8a6f-4cbc-8c51-1e34d001ade0\r\nvti_timelastwnssent:TR|31 Mar 2026 01:00:28 -0000\r\neolShpFechaBusqueda:SW|2026-03-15T21:00:00Z\r\neolShpResumen:SW|Nuevo Valor Texto LArgo\r\nvti_shortcuturl:SW|\r\nvti_iplabelpromotionversion:IW|0\r\neolShpGrupoResultados:SW|\r\nestadoOptimizacion:SW|Completado\r\nOrder:DW|2420100.00000000\r\nvti_previewinvalidtime:TX|10 Oct 2024 11:43:51 -0000\r\nvti_writevalidationtoken:SW|2AEs7RKAzdfpqiUjAd3lfX2ZWdg=\r\nvti_sourceitemetag:SW|\u0022{BB88E957-1097-4D35-8FD1-AAD11F57DE08},6\u0022\r\nxd_ProgID:SW|\r\neolShpIndiceContenidosEOL:SW|7501;#2025. Liquidaci\u00F3n Ganancias - Bienes Personales|87db2e21-92a4-412a-8888-baae936e2060\r\nMediaServiceImageTags:SW|\r\nvti_copy_source_streamhash:SW|XtJ8\u002B1dGyOjrIz8Do7YQEkp2\u002B9c=\r\nContentTypeId:SW|0x010100EB44EE12E9257E42AAE868801C914FEA000A0A506FFC3157438B782852F62EB561\r\nvti_sourcelistid:SW|a0d5cdb4-e83d-4634-b9b0-4cdc15db9018\r\n_SharedFileIndex:SW|\r\nkaeb46764e114b9ab890e604b58c8d0a:SW|\r\nTemplateUrl:SW|\r\neolShpIndiceContenidosIUS:SW|\r\ng28120d37db544c6aa6ebe918b2c7e31:SW|Administrativo|d6458973-52a3-4902-9629-f1d6e1df55d3\r\neolShpMetaDescription:SW|\r\nvti_supportsZipIt:BW|false\r\nvti_decryptskipreason:IW|6\r\nvti_copymovejobid:SW|6d266085-4120-4aa1-8d5f-773caad4fa4c\r\ndisplay_urn\\:schemas-microsoft-com\\:office\\:office#Editor:SW|Hernan Rybak\r\nvti_areHybridOrphanHashedBlobsCleaned:BW|false\r\n",
+      "_Level": 2,
+      "_IsCurrentVersion": true,
+      "ItemChildCount": "0",
+      "FolderChildCount": "0",
+      "Restricted": "",
+      "OriginatorId": "",
+      "NoExecute": "1",
+      "ContentVersion": "86",
+      "_ComplianceFlags": "",
+      "_ComplianceTag": "",
+      "_ComplianceTagWrittenTime": "",
+      "_ComplianceTagUserId": "",
+      "BSN": {
+        "Id": 6086,
+        "Value": ""
+      },
+      "_ListSchemaVersion": "317",
+      "_Dirty": "0",
+      "_Parsable": "1",
+      "_StubFile": "0",
+      "_HasEncryptedContent": "0",
+      "_HasUserDefinedProtection": "0",
+      "AccessPolicy": "0",
+      "_VirusStatus": "0",
+      "_VirusVendorID": "2215",
+      "_VirusInfo": "",
+      "_RansomwareAnomalyMetaInfo": "",
+      "_CommentFlags": "",
+      "_CommentCount": "",
+      "_LikeCount": "",
+      "_RmsTemplateId": "",
+      "_IpLabelId": "",
+      "_IpLabelOwnerEmail": "",
+      "_DisplayName": "",
+      "_IpLabelAssignmentMethod": "",
+      "A2ODMountCount": "",
+      "_ExpirationDate": "",
+      "_IpLabelHash": "",
+      "_IpLabelPromotionCtagVersion": "0",
+      "_DraftOwnerId": "1073741822",
+      "_IpLabelMetaInfo": "",
+      "_AdditionalStreamSize": "0",
+      "_StreamScenarioIds": "",
+      "_FileArchiveStatus": "",
+      "_ExtractedMetadata": "",
+      "_FileArchiveTimeLastModified": "",
+      "AppAuthor": null,
+      "AppEditor": {
+        "Id": 19,
+        "Value": "erreparDev"
+      },
+      "SMTotalSize": {
+        "Id": 63388,
+        "Value": ""
+      },
+      "SMLastModifiedDate": "2026-09-28T19:45:56Z",
+      "SMTotalFileStreamSize": "10998",
+      "SMTotalFileCount": {
+        "Id": 1,
+        "Value": ""
+      },
+      "owshiddenversion": 92,
+      "_UIVersion": 2560,
+      "_UIVersionString": "5.0",
+      "InstanceID": null,
+      "Order": 2420100,
+      "WorkflowVersion": 1,
+      "WorkflowInstanceID": null,
+      "ParentVersionString": {
+        "Id": 116,
+        "Value": null
+      },
+      "ParentLeafName": {
+        "Id": 116,
+        "Value": null
+      },
+      "DocConcurrencyNumber": "93",
+      "StreamHash": "0x022C9E15611D9BEF2716A437B03DD388987E0CB47E"
+    }
+  },
+  {
+    "Id": 118,
+    "UniqueId": "74f505b3-ed8c-4abd-b46b-50faf29eccac",
+    "Fields": {
+      "GUID": "74f505b3-ed8c-4abd-b46b-50faf29eccac",
+      "ContentTypeId": "0x010100EB44EE12E9257E42AAE868801C914FEA000A0A506FFC3157438B782852F62EB561",
+      "_ModerationStatus": 2,
+      "_ModerationComments": null,
+      "FileLeafRef": "20230725105521542.html",
+      "Modified_x0020_By": "i:0i.t|00000003-0000-0ff1-ce00-000000000000|app@sharepoint",
+      "Created_x0020_By": "i:0#.f|membership|svcplatform4@spcdn.errepar.com",
+      "File_x0020_Type": "html",
+      "HTML_x0020_File_x0020_Type": null,
+      "_SourceUrl": null,
+      "_SharedFileIndex": null,
+      "_ColorHex": null,
+      "_ColorTag": null,
+      "_Emoji": null,
+      "MediaGeneratedMetadata": null,
+      "MediaUserMetadata": null,
+      "ComplianceAssetId": null,
+      "Title": "An\u00E1lisis del patrimonio. Consultas frecuentes",
+      "TemplateUrl": null,
+      "xd_ProgID": null,
+      "xd_Signature": null,
+      "_ShortcutUrl": null,
+      "_ShortcutSiteId": null,
+      "_ShortcutWebId": null,
+      "_ShortcutUniqueId": null,
+      "_ExtendedDescription": "Long Description",
+      "TriggerFlowInfo": null,
+      "eolShpTimeStamp": "20230725105521542",
+      "eolShpAreaTematica": [
+        "Microsoft.SharePoint.Client.Taxonomy.TaxonomyFieldValue"
+      ],
+      "g28120d37db544c6aa6ebe918b2c7e31": "Administrativo|d6458973-52a3-4902-9629-f1d6e1df55d3",
+      "TaxCatchAll": [
+        {
+          "Id": 7495,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|gZVNQ5OyXUC6n15Xmv8\u002Bfw==|Y\u002BCiBUJeZU68w7oaNx9\u002BEQ=="
+        },
+        {
+          "Id": 7494,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|gZVNQ5OyXUC6n15Xmv8\u002Bfw==|ROk1x2BF10uXd/CKe8xXsA=="
+        },
+        {
+          "Id": 1016,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|5JKOuTKYyU6L8yuESl0P9A==|xHgP42\u002BKvEyMUR400AGt4A==|dJC3Q8BjG0ezsCHm9GHmGg==|bAggeJ2o\u002B0m4XQyY6xtEZg=="
+        },
+        {
+          "Id": 318,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|gZVNQ5OyXUC6n15Xmv8\u002Bfw==|Xf15MK8eH0aqzgASAKIwLw=="
+        },
+        {
+          "Id": 7,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|Ih6xQrtMgUmmzV6nPWvZ3g==|c4lF1qNSAkmWKfHW4d9V0w=="
+        },
+        {
+          "Id": 7501,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|2X/Osjn9SU\u002B1XE8DB6tDtQ==|IS7bh6SSKkGIiLquk24gYA==|cy4nE9312kW3\u002B5ednTRVYA==|UYIBEVugD0mnWKB9sFMMJw=="
+        },
+        {
+          "Id": 799,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|gZVNQ5OyXUC6n15Xmv8\u002Bfw==|oosk79BmxEabj8bQkoIA2w=="
+        }
+      ],
+      "eolShpSeccion": [],
+      "e74c7963bd1547e18b37dfe00b908629": null,
+      "eolShpIndiceContenidosEOL": [
+        "Microsoft.SharePoint.Client.Taxonomy.TaxonomyFieldValue"
+      ],
+      "pfdb9deb116740fc82acc70cfa57bbcd": "2025. Liquidaci\u00F3n Ganancias - Bienes Personales|87db2e21-92a4-412a-8888-baae936e2060",
+      "eolShpIndiceContenidosIUS": [],
+      "k843ded9b57541afb23535b3cdf4cfd6": null,
+      "eolShpIndiceContenidosOculto": [
+        "Microsoft.SharePoint.Client.Taxonomy.TaxonomyFieldValue"
+      ],
+      "d13c468c907a445dafc63fee1e6cc681": "Balances|e30f78c4-8a6f-4cbc-8c51-1e34d001ade0",
+      "eolShpAccesosRapidos": [],
+      "g04cf80c6d6e4c20964b9614fcb58365": null,
+      "eolShpVoces": [],
+      "kaeb46764e114b9ab890e604b58c8d0a": null,
+      "eolShpAnalisis": [],
+      "d4138cf183234fffb1922580583ca273": null,
+      "eolShpFechaNovedad": null,
+      "eolShpMarcasCD": [
+        "Microsoft.SharePoint.Client.Taxonomy.TaxonomyFieldValue",
+        "Microsoft.SharePoint.Client.Taxonomy.TaxonomyFieldValue",
+        "Microsoft.SharePoint.Client.Taxonomy.TaxonomyFieldValue",
+        "Microsoft.SharePoint.Client.Taxonomy.TaxonomyFieldValue"
+      ],
+      "n6e957bddd23492da2e1dda76f7899b9": "agenda|3079fd5d-1eaf-461f-aace-001200a2302f;legislacion|ef248ba2-66d0-46c4-9b8f-c6d0928200db;Documento p\u00FAblico|c735e944-4560-4bd7-9777-f08a7bcc57b0;SOLO B\u00DASQUEDA|05a2e063-5e42-4e65-bcc3-ba1a371f7e11",
+      "eolShpOrden": null,
+      "eolShpClasificacion": 8,
+      "eolShpResumen": "Nuevo Valor Texto LArgo",
+      "eolShpResumenPublico": null,
+      "eolShpClasificacionAutomatica": 6,
+      "eolShpFechaClasificacionAutomatica": "2023-07-25T03:00:00Z",
+      "eolShpOrdenMail": null,
+      "eolShpNegocio": [
+        "Errepar"
+      ],
+      "eolShpPermalink": "analisis-del-patrimonio-consultas-frecuentes-20230725105521542",
+      "eolShpMetaTitle": "Test",
+      "eolShpMetaDescription": null,
+      "eolShpFechaMail": null,
+      "eolShpGrupoResultados": null,
+      "eolShpFechaBusqueda": "2026-03-16T00:00:00Z",
+      "eolShpFechaCreacion": "2023-07-25T13:55:21Z",
+      "eolShpCanalPublicacion": [
+        " ",
+        "Publicaci\u00F3n Home",
+        "Columna derecha"
+      ],
+      "TaxCatchAllLabel": [
+        {
+          "Id": 7495,
+          "Value": "SOLO B\u00DASQUEDA#\u0409|"
+        },
+        {
+          "Id": 7494,
+          "Value": "Documento p\u00FAblico#\u0409|"
+        },
+        {
+          "Id": 1016,
+          "Value": "Balances#\u0409|"
+        },
+        {
+          "Id": 318,
+          "Value": "agenda#\u0409|"
+        },
+        {
+          "Id": 7,
+          "Value": "Administrativo#\u0409|"
+        },
+        {
+          "Id": 7501,
+          "Value": "2025. Liquidaci\u00F3n Ganancias - Bienes Personales#\u0409|"
+        },
+        {
+          "Id": 799,
+          "Value": "legislacion#\u0409|"
+        }
+      ],
+      "eolShpBuscable": true,
+      "lcf76f155ced4ddcb4097134ff3c332f": null,
+      "MediaServiceImageTags": [],
+      "MediaServiceOCR": null,
+      "editarFormulario": null,
+      "Optimizacion": null,
+      "estadoOptimizacion": "Completado",
+      "eolShpMicrositios": null,
+      "eolShpResumenIA": null,
+      "j98ca55809194c70bd98433d2571653e": null,
+      "eolShpTema": [],
+      "eolShpContextoOrigen": null,
+      "eolShpReplaceDocID": null,
+      "MediaServiceMetadata": null,
+      "MediaServiceFastMetadata": null,
+      "MediaServiceSearchProperties": null,
+      "eolShpSeleccionEditor": null,
+      "EsCritico": null,
+      "ID": 118,
+      "Created": "2024-10-10T11:43:53Z",
+      "Author": {
+        "Id": 15,
+        "Value": "svcplatform4",
+        "Email": "svcplatform4@spcdn.errepar.com"
+      },
+      "Modified": "2026-03-24T15:35:57Z",
+      "Editor": {
+        "Id": 1073741822,
+        "Value": "Aplicaci\u00F3n de SharePoint",
+        "Email": ""
+      },
+      "_HasCopyDestinations": null,
+      "_CopySource": null,
+      "FileRef": "/sites/ErreparDesarrollo/Documento/00-sin-obra/2023/20230725105521542/20230725105521542.html",
+      "FileDirRef": "/sites/ErreparDesarrollo/Documento/00-sin-obra/2023/20230725105521542",
+      "Last_x0020_Modified": "2026-03-24T15:35:56Z",
+      "Created_x0020_Date": "2024-10-10T11:43:53Z",
+      "File_x0020_Size": "8223",
+      "FSObjType": "0",
+      "SortBehavior": {
+        "Id": 118,
+        "Value": "0"
+      },
+      "CheckedOutUserId": {
+        "Id": 118,
+        "Value": null
+      },
+      "IsCheckedoutToLocal": "0",
+      "CheckoutUser": null,
+      "UniqueId": "a85e72c6-538f-4ac4-8c4c-8f09ab0f4f65",
+      "ParentUniqueId": "{D1957CDB-2236-48CF-84B3-EA9752226F67}",
+      "SyncClientId": {
+        "Id": 118,
+        "Value": null
+      },
+      "ProgId": "",
+      "ScopeId": "{8F52762C-DB8B-4D47-B9E2-8198EABA17D8}",
+      "VirusStatus": {
+        "Id": 118,
+        "Value": "8223"
+      },
+      "CheckedOutTitle": {
+        "Id": 118,
+        "Value": null
+      },
+      "_CheckinComment": "",
+      "MetaInfo": "eolShpMarcasCD:SW|318;#agenda|3079fd5d-1eaf-461f-aace-001200a2302f;#799;#legislacion|ef248ba2-66d0-46c4-9b8f-c6d0928200db;#7494;#Documento p\u00FAblico|c735e944-4560-4bd7-9777-f08a7bcc57b0;#7495;#SOLO B\u00DASQUEDA|05a2e063-5e42-4e65-bcc3-ba1a371f7e11\r\n_SourceUrl:SW|\r\neolShpVoces:SW|\r\neolShpFechaClasificacionAutomatica:SW|2023-07-25T00:00:00Z\r\neolShpCanalPublicacion:SW|;# ;#Publicaci\u00F3n Home;#Columna derecha;#\r\neolShpResumenPublico:SW|\r\nvti_parserversion:SR|16.0.0.27118\r\npfdb9deb116740fc82acc70cfa57bbcd:SW|2025. Liquidaci\u00F3n Ganancias - Bienes Personales|87db2e21-92a4-412a-8888-baae936e2060\r\neolShpFechaMail:SW|\r\nxd_Signature:SW|\r\nvti_modifiedby:SR|i:0i.t|00000003-0000-0ff1-ce00-000000000000|app@sharepoint\r\nvti_copy_source_timelastmodified:SW|638528550170000000\r\ne74c7963bd1547e18b37dfe00b908629:SW|\r\nlcf76f155ced4ddcb4097134ff3c332f:SW|\r\neolShpMetaTitle:SW|Test\r\nvti_colortag:SW|\r\nvti_foldersubfolderitemcount:IR|0\r\nvti_shortcutuniqueid:SW|\r\nvti_title:SR|An\u00E1lisis del patrimonio. Consultas frecuentes\r\nvti_shortcutsiteid:SW|\r\neolShpAreaTematica:SW|7;#Administrativo|d6458973-52a3-4902-9629-f1d6e1df55d3\r\neolShpBuscable:IW|1\r\nvti_author:SW|i:0#.f|membership|svcplatform4@spcdn.errepar.com\r\neolShpNegocio:SW|;#Errepar;#\r\nvti_copy_source_timecreated:SW|638521827430000000\r\neolShpFechaCreacion:SW|2023-07-25T10:55:21Z\r\nvti_copy_source_etag:SW|\u0022{627303E8-C881-4151-8F44-1126B694DB71},6\u0022\r\nj98ca55809194c70bd98433d2571653e:SW|\r\neolShpClasificacion:DW|8.00000000000000\r\ng04cf80c6d6e4c20964b9614fcb58365:SW|\r\n_ExtendedDescription:SW|Long Description\r\neolShpOrdenMail:SW|\r\nvti_lcf76f155ced4ddcb4097134ff3c332f:SW|\r\nvti_commentcount:IR|0\r\nvti_emoji:SW|\r\neolShpAccesosRapidos:SW|\r\nvti_colorhex:SW|\r\nk843ded9b57541afb23535b3cdf4cfd6:SW|\r\nTaxCatchAll:SW|7495;#SOLO B\u00DASQUEDA|05a2e063-5e42-4e65-bcc3-ba1a371f7e11;#7494;#Documento p\u00FAblico|c735e944-4560-4bd7-9777-f08a7bcc57b0;#1016;#Balances|e30f78c4-8a6f-4cbc-8c51-1e34d001ade0;#318;#agenda|3079fd5d-1eaf-461f-aace-001200a2302f;#7;#Administrativo|d6458973-52a3-4902-9629-f1d6e1df55d3;#7501;#2025. Liquidaci\u00F3n Ganancias - Bienes Personales|87db2e21-92a4-412a-8888-baae936e2060;#799;#legislacion|ef248ba2-66d0-46c4-9b8f-c6d0928200db\r\nvti_folderitemcount:IR|0\r\nsearchable:IW|1\r\neolShpAnalisis:SW|\r\nd4138cf183234fffb1922580583ca273:SW|\r\nvti_mediausermetadata:SW|\r\neolShpOrden:SW|\r\neolShpClasificacionAutomatica:DW|6.00000000000000\r\neolShpPermalink:SW|analisis-del-patrimonio-consultas-frecuentes-20230725105521542\r\nTriggerFlowInfo:SW|\r\neolShpSeccion:SW|\r\nn6e957bddd23492da2e1dda76f7899b9:SW|agenda|3079fd5d-1eaf-461f-aace-001200a2302f;legislacion|ef248ba2-66d0-46c4-9b8f-c6d0928200db;Documento p\u00FAblico|c735e944-4560-4bd7-9777-f08a7bcc57b0;SOLO B\u00DASQUEDA|05a2e063-5e42-4e65-bcc3-ba1a371f7e11\r\nvti_accesscontrolflags:IR|0\r\nvti_sourcesiteid:SW|c9624cb7-23fd-46c3-b09a-05aec0693de0\r\neolShpIndiceContenidosOculto:SW|1016;#Balances|e30f78c4-8a6f-4cbc-8c51-1e34d001ade0\r\nvti_mediageneratedmetadata:SW|\r\nComplianceAssetId:SW|\r\nvti_shortcutwebid:SW|\r\neolShpFechaNovedad:SW|\r\nvti_priorversioncreationtime:TR|24 Mar 2026 15:35:56 -0000\r\nvti_sourceitemid:SW|627303e8-c881-4151-8f44-1126b694db71\r\ndisplay_urn\\:schemas-microsoft-com\\:office\\:office#Author:SW|Daniel Acher\r\neditarFormulario:SW|\r\nvti_sourcewebid:SW|7a492a01-f5f5-489d-920b-a2eedbf3a2ca\r\neolShpTimeStamp:SW|20230725105521542\r\neolShpTema:SW|\r\nd13c468c907a445dafc63fee1e6cc681:SW|Balances|e30f78c4-8a6f-4cbc-8c51-1e34d001ade0\r\nvti_timelastwnssent:TR|31 Mar 2026 01:00:39 -0000\r\neolShpFechaBusqueda:SW|2026-03-15T21:00:00Z\r\neolShpResumen:SW|Nuevo Valor Texto LArgo\r\nvti_shortcuturl:SW|\r\nvti_iplabelpromotionversion:IW|0\r\neolShpGrupoResultados:SW|\r\nestadoOptimizacion:SW|Completado\r\nOrder:DW|2419900.00000000\r\nvti_previewinvalidtime:TX|10 Oct 2024 11:43:53 -0000\r\nvti_writevalidationtoken:SW|gssVaq2Eor/3NnOgF4i37diou2w=\r\nvti_sourceitemetag:SW|\u0022{627303E8-C881-4151-8F44-1126B694DB71},6\u0022\r\nxd_ProgID:SW|\r\neolShpIndiceContenidosEOL:SW|7501;#2025. Liquidaci\u00F3n Ganancias - Bienes Personales|87db2e21-92a4-412a-8888-baae936e2060\r\nMediaServiceImageTags:SW|\r\nvti_copy_source_streamhash:SW|gkn6im/zZCQ0ZeZDA5XF0GZECQU=\r\nContentTypeId:SW|0x010100EB44EE12E9257E42AAE868801C914FEA000A0A506FFC3157438B782852F62EB561\r\nvti_sourcelistid:SW|a0d5cdb4-e83d-4634-b9b0-4cdc15db9018\r\n_SharedFileIndex:SW|\r\nkaeb46764e114b9ab890e604b58c8d0a:SW|\r\nTemplateUrl:SW|\r\neolShpIndiceContenidosIUS:SW|\r\ng28120d37db544c6aa6ebe918b2c7e31:SW|Administrativo|d6458973-52a3-4902-9629-f1d6e1df55d3\r\neolShpMetaDescription:SW|\r\nvti_supportsZipIt:BW|false\r\nvti_decryptskipreason:IW|6\r\nvti_copymovejobid:SW|6d266085-4120-4aa1-8d5f-773caad4fa4c\r\ndisplay_urn\\:schemas-microsoft-com\\:office\\:office#Editor:SW|Hernan Rybak\r\nvti_areHybridOrphanHashedBlobsCleaned:BW|false\r\n",
+      "_Level": 2,
+      "_IsCurrentVersion": true,
+      "ItemChildCount": "0",
+      "FolderChildCount": "0",
+      "Restricted": "",
+      "OriginatorId": "",
+      "NoExecute": "1",
+      "ContentVersion": "81",
+      "_ComplianceFlags": "",
+      "_ComplianceTag": "",
+      "_ComplianceTagWrittenTime": "",
+      "_ComplianceTagUserId": "",
+      "BSN": {
+        "Id": 5766,
+        "Value": ""
+      },
+      "_ListSchemaVersion": "310",
+      "_Dirty": "0",
+      "_Parsable": "1",
+      "_StubFile": "0",
+      "_HasEncryptedContent": "0",
+      "_HasUserDefinedProtection": "0",
+      "AccessPolicy": "0",
+      "_VirusStatus": "0",
+      "_VirusVendorID": "2215",
+      "_VirusInfo": "",
+      "_RansomwareAnomalyMetaInfo": "",
+      "_CommentFlags": "",
+      "_CommentCount": "",
+      "_LikeCount": "",
+      "_RmsTemplateId": "",
+      "_IpLabelId": "",
+      "_IpLabelOwnerEmail": "",
+      "_DisplayName": "",
+      "_IpLabelAssignmentMethod": "",
+      "A2ODMountCount": "",
+      "_ExpirationDate": "",
+      "_IpLabelHash": "",
+      "_IpLabelPromotionCtagVersion": "0",
+      "_DraftOwnerId": "1073741822",
+      "_IpLabelMetaInfo": "",
+      "_AdditionalStreamSize": "0",
+      "_StreamScenarioIds": "",
+      "_FileArchiveStatus": "",
+      "_ExtractedMetadata": "",
+      "_FileArchiveTimeLastModified": "",
+      "AppAuthor": null,
+      "AppEditor": {
+        "Id": 19,
+        "Value": "erreparDev"
+      },
+      "SMTotalSize": {
+        "Id": 49425,
+        "Value": ""
+      },
+      "SMLastModifiedDate": "2026-04-06T21:49:18Z",
+      "SMTotalFileStreamSize": "8223",
+      "SMTotalFileCount": {
+        "Id": 1,
+        "Value": ""
+      },
+      "owshiddenversion": 89,
+      "_UIVersion": 2560,
+      "_UIVersionString": "5.0",
+      "InstanceID": null,
+      "Order": 2419900,
+      "WorkflowVersion": 1,
+      "WorkflowInstanceID": null,
+      "ParentVersionString": {
+        "Id": 118,
+        "Value": null
+      },
+      "ParentLeafName": {
+        "Id": 118,
+        "Value": null
+      },
+      "DocConcurrencyNumber": "89",
+      "StreamHash": "0x024401E5C0BCAF03552C2479135A314993ECCFD21F"
+    }
+  },
+  {
+    "Id": 110,
+    "UniqueId": "b05491dc-08b5-41b6-84b3-3d99701fb381",
+    "Fields": {
+      "GUID": "b05491dc-08b5-41b6-84b3-3d99701fb381",
+      "ContentTypeId": "0x010100EB44EE12E9257E42AAE868801C914FEA000A0A506FFC3157438B782852F62EB561",
+      "_ModerationStatus": 2,
+      "_ModerationComments": null,
+      "FileLeafRef": "20230725105752544.html",
+      "Modified_x0020_By": "i:0i.t|00000003-0000-0ff1-ce00-000000000000|app@sharepoint",
+      "Created_x0020_By": "i:0#.f|membership|svcplatform4@spcdn.errepar.com",
+      "File_x0020_Type": "html",
+      "HTML_x0020_File_x0020_Type": null,
+      "_SourceUrl": null,
+      "_SharedFileIndex": null,
+      "_ColorHex": null,
+      "_ColorTag": null,
+      "_Emoji": null,
+      "MediaGeneratedMetadata": null,
+      "MediaUserMetadata": null,
+      "ComplianceAssetId": null,
+      "Title": "El impacto de la inflaci\u00F3n en el an\u00E1lisis v3",
+      "TemplateUrl": null,
+      "xd_ProgID": null,
+      "xd_Signature": null,
+      "_ShortcutUrl": null,
+      "_ShortcutSiteId": null,
+      "_ShortcutWebId": null,
+      "_ShortcutUniqueId": null,
+      "_ExtendedDescription": "Long Description",
+      "TriggerFlowInfo": null,
+      "eolShpTimeStamp": "20230725105752544",
+      "eolShpAreaTematica": [
+        "Microsoft.SharePoint.Client.Taxonomy.TaxonomyFieldValue"
+      ],
+      "g28120d37db544c6aa6ebe918b2c7e31": "Administrativo|d6458973-52a3-4902-9629-f1d6e1df55d3",
+      "TaxCatchAll": [
+        {
+          "Id": 7495,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|gZVNQ5OyXUC6n15Xmv8\u002Bfw==|Y\u002BCiBUJeZU68w7oaNx9\u002BEQ=="
+        },
+        {
+          "Id": 7494,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|gZVNQ5OyXUC6n15Xmv8\u002Bfw==|ROk1x2BF10uXd/CKe8xXsA=="
+        },
+        {
+          "Id": 1016,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|5JKOuTKYyU6L8yuESl0P9A==|xHgP42\u002BKvEyMUR400AGt4A==|dJC3Q8BjG0ezsCHm9GHmGg==|bAggeJ2o\u002B0m4XQyY6xtEZg=="
+        },
+        {
+          "Id": 318,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|gZVNQ5OyXUC6n15Xmv8\u002Bfw==|Xf15MK8eH0aqzgASAKIwLw=="
+        },
+        {
+          "Id": 7,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|Ih6xQrtMgUmmzV6nPWvZ3g==|c4lF1qNSAkmWKfHW4d9V0w=="
+        },
+        {
+          "Id": 7501,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|2X/Osjn9SU\u002B1XE8DB6tDtQ==|IS7bh6SSKkGIiLquk24gYA==|cy4nE9312kW3\u002B5ednTRVYA==|UYIBEVugD0mnWKB9sFMMJw=="
+        },
+        {
+          "Id": 7124,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|zetxy6NvrUWbG4bWaRL6/w==|27w94xQXjEi36t5vXwM\u002BCA=="
+        },
+        {
+          "Id": 799,
+          "Value": "Jb5m32G\u002BF0CEK\u002B5pZCN6Mw==|gZVNQ5OyXUC6n15Xmv8\u002Bfw==|oosk79BmxEabj8bQkoIA2w=="
+        }
+      ],
+      "eolShpSeccion": [],
+      "e74c7963bd1547e18b37dfe00b908629": null,
+      "eolShpIndiceContenidosEOL": [
+        "Microsoft.SharePoint.Client.Taxonomy.TaxonomyFieldValue"
+      ],
+      "pfdb9deb116740fc82acc70cfa57bbcd": "2025. Liquidaci\u00F3n Ganancias - Bienes Personales|87db2e21-92a4-412a-8888-baae936e2060",
+      "eolShpIndiceContenidosIUS": [],
+      "k843ded9b57541afb23535b3cdf4cfd6": null,
+      "eolShpIndiceContenidosOculto": [
+        "Microsoft.SharePoint.Client.Taxonomy.TaxonomyFieldValue"
+      ],
+      "d13c468c907a445dafc63fee1e6cc681": "Balances|e30f78c4-8a6f-4cbc-8c51-1e34d001ade0",
+      "eolShpAccesosRapidos": [],
+      "g04cf80c6d6e4c20964b9614fcb58365": null,
+      "eolShpVoces": [],
+      "kaeb46764e114b9ab890e604b58c8d0a": null,
+      "eolShpAnalisis": [],
+      "d4138cf183234fffb1922580583ca273": null,
+      "eolShpFechaNovedad": null,
+      "eolShpMarcasCD": [
+        "Microsoft.SharePoint.Client.Taxonomy.TaxonomyFieldValue",
+        "Microsoft.SharePoint.Client.Taxonomy.TaxonomyFieldValue",
+        "Microsoft.SharePoint.Client.Taxonomy.TaxonomyFieldValue",
+        "Microsoft.SharePoint.Client.Taxonomy.TaxonomyFieldValue"
+      ],
+      "n6e957bddd23492da2e1dda76f7899b9": "agenda|3079fd5d-1eaf-461f-aace-001200a2302f;legislacion|ef248ba2-66d0-46c4-9b8f-c6d0928200db;Documento p\u00FAblico|c735e944-4560-4bd7-9777-f08a7bcc57b0;SOLO B\u00DASQUEDA|05a2e063-5e42-4e65-bcc3-ba1a371f7e11",
+      "eolShpOrden": null,
+      "eolShpClasificacion": 8,
+      "eolShpResumen": "Nuevo Valor Texto LArgo",
+      "eolShpResumenPublico": "Se detallan estrategias sobre inventarios, endeudamiento y capital de trabajo ante inflaci\u00F3n, analizando sus riesgos y efectos patrimoniales.",
+      "eolShpClasificacionAutomatica": 6,
+      "eolShpFechaClasificacionAutomatica": "2023-07-25T03:00:00Z",
+      "eolShpOrdenMail": null,
+      "eolShpNegocio": [
+        "Errepar"
+      ],
+      "eolShpPermalink": "el-impacto-de-la-inflacion-en-el-analisis-20230725105752544",
+      "eolShpMetaTitle": "Test",
+      "eolShpMetaDescription": null,
+      "eolShpFechaMail": null,
+      "eolShpGrupoResultados": null,
+      "eolShpFechaBusqueda": "2026-03-16T00:00:00Z",
+      "eolShpFechaCreacion": "2023-07-25T13:57:52Z",
+      "eolShpCanalPublicacion": [
+        " ",
+        "Publicaci\u00F3n Home",
+        "Columna derecha"
+      ],
+      "TaxCatchAllLabel": [
+        {
+          "Id": 7495,
+          "Value": "SOLO B\u00DASQUEDA#\u0409|"
+        },
+        {
+          "Id": 7494,
+          "Value": "Documento p\u00FAblico#\u0409|"
+        },
+        {
+          "Id": 1016,
+          "Value": "Balances#\u0409|"
+        },
+        {
+          "Id": 318,
+          "Value": "agenda#\u0409|"
+        },
+        {
+          "Id": 7,
+          "Value": "Administrativo#\u0409|"
+        },
+        {
+          "Id": 7501,
+          "Value": "2025. Liquidaci\u00F3n Ganancias - Bienes Personales#\u0409|"
+        },
+        {
+          "Id": 7124,
+          "Value": "Acuerdos y escalas salariales#\u0409|"
+        },
+        {
+          "Id": 799,
+          "Value": "legislacion#\u0409|"
+        }
+      ],
+      "eolShpBuscable": true,
+      "lcf76f155ced4ddcb4097134ff3c332f": null,
+      "MediaServiceImageTags": [],
+      "MediaServiceOCR": null,
+      "editarFormulario": null,
+      "Optimizacion": null,
+      "estadoOptimizacion": "Completado",
+      "eolShpMicrositios": null,
+      "eolShpResumenIA": null,
+      "j98ca55809194c70bd98433d2571653e": "Acuerdos y escalas salariales|e33dbcdb-1714-488c-b7ea-de6f5f033e08",
+      "eolShpTema": [
+        "Microsoft.SharePoint.Client.Taxonomy.TaxonomyFieldValue"
+      ],
+      "eolShpContextoOrigen": null,
+      "eolShpReplaceDocID": null,
+      "MediaServiceMetadata": null,
+      "MediaServiceFastMetadata": null,
+      "MediaServiceSearchProperties": null,
+      "eolShpSeleccionEditor": null,
+      "EsCritico": null,
+      "ID": 110,
+      "Created": "2024-10-10T11:43:45Z",
+      "Author": {
+        "Id": 15,
+        "Value": "svcplatform4",
+        "Email": "svcplatform4@spcdn.errepar.com"
+      },
+      "Modified": "2026-03-24T15:35:16Z",
+      "Editor": {
+        "Id": 1073741822,
+        "Value": "Aplicaci\u00F3n de SharePoint",
+        "Email": ""
+      },
+      "_HasCopyDestinations": null,
+      "_CopySource": null,
+      "FileRef": "/sites/ErreparDesarrollo/Documento/00-sin-obra/2023/20230725105752544/20230725105752544.html",
+      "FileDirRef": "/sites/ErreparDesarrollo/Documento/00-sin-obra/2023/20230725105752544",
+      "Last_x0020_Modified": "2026-03-24T15:35:17Z",
+      "Created_x0020_Date": "2024-10-10T11:43:45Z",
+      "File_x0020_Size": "10515",
+      "FSObjType": "0",
+      "SortBehavior": {
+        "Id": 110,
+        "Value": "0"
+      },
+      "CheckedOutUserId": {
+        "Id": 110,
+        "Value": null
+      },
+      "IsCheckedoutToLocal": "0",
+      "CheckoutUser": null,
+      "UniqueId": "a49f6f05-1be9-46f6-b066-ff2ec32f3f93",
+      "ParentUniqueId": "{E99EEEC9-1E74-488C-AF08-F0957778E0F9}",
+      "SyncClientId": {
+        "Id": 110,
+        "Value": null
+      },
+      "ProgId": "",
+      "ScopeId": "{8F52762C-DB8B-4D47-B9E2-8198EABA17D8}",
+      "VirusStatus": {
+        "Id": 110,
+        "Value": "10515"
+      },
+      "CheckedOutTitle": {
+        "Id": 110,
+        "Value": null
+      },
+      "_CheckinComment": "",
+      "MetaInfo": "eolShpMarcasCD:SW|318;#agenda|3079fd5d-1eaf-461f-aace-001200a2302f;#799;#legislacion|ef248ba2-66d0-46c4-9b8f-c6d0928200db;#7494;#Documento p\u00FAblico|c735e944-4560-4bd7-9777-f08a7bcc57b0;#7495;#SOLO B\u00DASQUEDA|05a2e063-5e42-4e65-bcc3-ba1a371f7e11\r\n_SourceUrl:SW|\r\neolShpVoces:SW|\r\neolShpFechaClasificacionAutomatica:SW|2023-07-25T00:00:00Z\r\neolShpCanalPublicacion:SW|;# ;#Publicaci\u00F3n Home;#Columna derecha;#\r\neolShpResumenPublico:SW|Se detallan estrategias sobre inventarios, endeudamiento y capital de trabajo ante inflaci\u00F3n, analizando sus riesgos y efectos patrimoniales.\r\nvti_parserversion:SR|16.0.0.27320\r\npfdb9deb116740fc82acc70cfa57bbcd:SW|2025. Liquidaci\u00F3n Ganancias - Bienes Personales|87db2e21-92a4-412a-8888-baae936e2060\r\neolShpFechaMail:SW|\r\nxd_Signature:SW|\r\nvti_modifiedby:SR|i:0i.t|00000003-0000-0ff1-ce00-000000000000|app@sharepoint\r\nvti_copy_source_timelastmodified:SW|638528550180000000\r\ne74c7963bd1547e18b37dfe00b908629:SW|\r\nlcf76f155ced4ddcb4097134ff3c332f:SW|\r\neolShpMetaTitle:SW|Test\r\nvti_colortag:SW|\r\nvti_foldersubfolderitemcount:IR|0\r\nvti_shortcutuniqueid:SW|\r\nvti_title:SR|El impacto de la inflaci\u00F3n en el an\u00E1lisis v3\r\nvti_shortcutsiteid:SW|\r\neolShpAreaTematica:SW|7;#Administrativo|d6458973-52a3-4902-9629-f1d6e1df55d3\r\neolShpBuscable:IW|1\r\nvti_author:SW|i:0#.f|membership|svcplatform4@spcdn.errepar.com\r\neolShpNegocio:SW|;#Errepar;#\r\nvti_copy_source_timecreated:SW|638521827490000000\r\neolShpFechaCreacion:SW|2023-07-25T10:57:52Z\r\nvti_copy_source_etag:SW|\u0022{1B694420-E9F9-4825-AD37-9D3110EED1B3},6\u0022\r\nj98ca55809194c70bd98433d2571653e:SW|Acuerdos y escalas salariales|e33dbcdb-1714-488c-b7ea-de6f5f033e08\r\neolShpClasificacion:DW|8.00000000000000\r\ng04cf80c6d6e4c20964b9614fcb58365:SW|\r\n_ExtendedDescription:SW|Long Description\r\neolShpOrdenMail:SW|\r\nvti_lcf76f155ced4ddcb4097134ff3c332f:SW|\r\nvti_commentcount:IR|0\r\nvti_emoji:SW|\r\neolShpAccesosRapidos:SW|\r\nvti_colorhex:SW|\r\nk843ded9b57541afb23535b3cdf4cfd6:SW|\r\nTaxCatchAll:SW|7495;#SOLO B\u00DASQUEDA|05a2e063-5e42-4e65-bcc3-ba1a371f7e11;#7494;#Documento p\u00FAblico|c735e944-4560-4bd7-9777-f08a7bcc57b0;#1016;#Balances|e30f78c4-8a6f-4cbc-8c51-1e34d001ade0;#318;#agenda|3079fd5d-1eaf-461f-aace-001200a2302f;#7;#Administrativo|d6458973-52a3-4902-9629-f1d6e1df55d3;#7501;#2025. Liquidaci\u00F3n Ganancias - Bienes Personales|87db2e21-92a4-412a-8888-baae936e2060;#7124;#Acuerdos y escalas salariales|e33dbcdb-1714-488c-b7ea-de6f5f033e08;#799;#legislacion|ef248ba2-66d0-46c4-9b8f-c6d0928200db\r\nvti_folderitemcount:IR|0\r\nsearchable:IW|1\r\neolShpAnalisis:SW|\r\nd4138cf183234fffb1922580583ca273:SW|\r\nvti_mediausermetadata:SW|\r\neolShpOrden:SW|\r\neolShpClasificacionAutomatica:DW|6.00000000000000\r\neolShpPermalink:SW|el-impacto-de-la-inflacion-en-el-analisis-20230725105752544\r\nTriggerFlowInfo:SW|\r\neolShpSeccion:SW|\r\nn6e957bddd23492da2e1dda76f7899b9:SW|agenda|3079fd5d-1eaf-461f-aace-001200a2302f;legislacion|ef248ba2-66d0-46c4-9b8f-c6d0928200db;Documento p\u00FAblico|c735e944-4560-4bd7-9777-f08a7bcc57b0;SOLO B\u00DASQUEDA|05a2e063-5e42-4e65-bcc3-ba1a371f7e11\r\nvti_accesscontrolflags:IR|0\r\nvti_sourcesiteid:SW|c9624cb7-23fd-46c3-b09a-05aec0693de0\r\neolShpIndiceContenidosOculto:SW|1016;#Balances|e30f78c4-8a6f-4cbc-8c51-1e34d001ade0\r\nvti_mediageneratedmetadata:SW|\r\nComplianceAssetId:SW|\r\nvti_shortcutwebid:SW|\r\neolShpFechaNovedad:SW|\r\nvti_priorversioncreationtime:TR|24 Mar 2026 15:35:17 -0000\r\nvti_sourceitemid:SW|1b694420-e9f9-4825-ad37-9d3110eed1b3\r\ndisplay_urn\\:schemas-microsoft-com\\:office\\:office#Author:SW|Daniel Acher\r\neditarFormulario:SW|\r\nvti_sourcewebid:SW|7a492a01-f5f5-489d-920b-a2eedbf3a2ca\r\neolShpTimeStamp:SW|20230725105752544\r\neolShpTema:SW|7124;#Acuerdos y escalas salariales|e33dbcdb-1714-488c-b7ea-de6f5f033e08\r\nd13c468c907a445dafc63fee1e6cc681:SW|Balances|e30f78c4-8a6f-4cbc-8c51-1e34d001ade0\r\nvti_timelastwnssent:TR|31 Mar 2026 10:42:14 -0000\r\neolShpFechaBusqueda:SW|2026-03-15T21:00:00Z\r\neolShpResumen:SW|Nuevo Valor Texto LArgo\r\nvti_shortcuturl:SW|\r\nvti_iplabelpromotionversion:IW|0\r\neolShpGrupoResultados:SW|\r\nestadoOptimizacion:SW|Completado\r\nOrder:DW|2420300.00000000\r\nvti_previewinvalidtime:TX|10 Oct 2024 11:43:45 -0000\r\nvti_writevalidationtoken:SW|\u002B9uXwS6b4OJsPgYkNBcGIv6QIkU=\r\nvti_sourceitemetag:SW|\u0022{1B694420-E9F9-4825-AD37-9D3110EED1B3},6\u0022\r\nxd_ProgID:SW|\r\neolShpIndiceContenidosEOL:SW|7501;#2025. Liquidaci\u00F3n Ganancias - Bienes Personales|87db2e21-92a4-412a-8888-baae936e2060\r\nMediaServiceImageTags:SW|\r\nvti_copy_source_streamhash:SW|qOKqdQNWUxedcKnK6LX8yRrUKc0=\r\nContentTypeId:SW|0x010100EB44EE12E9257E42AAE868801C914FEA000A0A506FFC3157438B782852F62EB561\r\nvti_sourcelistid:SW|a0d5cdb4-e83d-4634-b9b0-4cdc15db9018\r\n_SharedFileIndex:SW|\r\nkaeb46764e114b9ab890e604b58c8d0a:SW|\r\nTemplateUrl:SW|\r\neolShpIndiceContenidosIUS:SW|\r\ng28120d37db544c6aa6ebe918b2c7e31:SW|Administrativo|d6458973-52a3-4902-9629-f1d6e1df55d3\r\neolShpMetaDescription:SW|\r\nvti_supportsZipIt:BW|false\r\nvti_decryptskipreason:IW|6\r\nvti_copymovejobid:SW|6d266085-4120-4aa1-8d5f-773caad4fa4c\r\ndisplay_urn\\:schemas-microsoft-com\\:office\\:office#Editor:SW|Hernan Rybak\r\nvti_areHybridOrphanHashedBlobsCleaned:BW|false\r\n",
+      "_Level": 2,
+      "_IsCurrentVersion": true,
+      "ItemChildCount": "0",
+      "FolderChildCount": "0",
+      "Restricted": "",
+      "OriginatorId": "",
+      "NoExecute": "1",
+      "ContentVersion": "161",
+      "_ComplianceFlags": "",
+      "_ComplianceTag": "",
+      "_ComplianceTagWrittenTime": "",
+      "_ComplianceTagUserId": "",
+      "BSN": {
+        "Id": 10756,
+        "Value": ""
+      },
+      "_ListSchemaVersion": "317",
+      "_Dirty": "0",
+      "_Parsable": "1",
+      "_StubFile": "0",
+      "_HasEncryptedContent": "0",
+      "_HasUserDefinedProtection": "0",
+      "AccessPolicy": "0",
+      "_VirusStatus": "0",
+      "_VirusVendorID": "2215",
+      "_VirusInfo": "",
+      "_RansomwareAnomalyMetaInfo": "",
+      "_CommentFlags": "",
+      "_CommentCount": "",
+      "_LikeCount": "",
+      "_RmsTemplateId": "",
+      "_IpLabelId": "",
+      "_IpLabelOwnerEmail": "",
+      "_DisplayName": "",
+      "_IpLabelAssignmentMethod": "",
+      "A2ODMountCount": "",
+      "_ExpirationDate": "",
+      "_IpLabelHash": "",
+      "_IpLabelPromotionCtagVersion": "0",
+      "_DraftOwnerId": "10",
+      "_IpLabelMetaInfo": "",
+      "_AdditionalStreamSize": "0",
+      "_StreamScenarioIds": "",
+      "_FileArchiveStatus": "",
+      "_ExtractedMetadata": "",
+      "_FileArchiveTimeLastModified": "",
+      "AppAuthor": null,
+      "AppEditor": {
+        "Id": 19,
+        "Value": "erreparDev"
+      },
+      "SMTotalSize": {
+        "Id": 84431,
+        "Value": ""
+      },
+      "SMLastModifiedDate": "2026-09-28T16:01:23Z",
+      "SMTotalFileStreamSize": "10515",
+      "SMTotalFileCount": {
+        "Id": 1,
+        "Value": ""
+      },
+      "owshiddenversion": 181,
+      "_UIVersion": 3584,
+      "_UIVersionString": "7.0",
+      "InstanceID": null,
+      "Order": 2420300,
+      "WorkflowVersion": 1,
+      "WorkflowInstanceID": null,
+      "ParentVersionString": {
+        "Id": 110,
+        "Value": null
+      },
+      "ParentLeafName": {
+        "Id": 110,
+        "Value": null
+      },
+      "DocConcurrencyNumber": "181",
+      "StreamHash": "0x026851CB4C8D42D2962B63E34FA757ACA28C14B013"
+    }
+  }
+]

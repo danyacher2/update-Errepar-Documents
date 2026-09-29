@@ -86,10 +86,9 @@ namespace Errepar.MetadataManager.Process.Services
                 taxField);
 
             taxField.SetFieldValueByValueCollection(item, nuevaCollection);
+            item.Update();
+            this._context.ExecuteQuery();
 
-            //item.SystemUpdate();
-
-            // ✅ No llamar item.Update() aquí - se llama SystemUpdate() desde Program.cs
             return true;
         }
         public void Procesar(ListItem sharepointItem, JsonElement cambio, int itemId)
