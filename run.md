@@ -1,0 +1,1 @@
+dotnet run --project .\errepar-update-indice-contenidos\Errepar.MetadataManager.Process.csproj -- --convert-xlsx --xlsx=resultado.xlsx

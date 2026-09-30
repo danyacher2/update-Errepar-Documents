@@ -2,8 +2,35 @@ using Errepar.MetadataManager.Process.Auth;
 using Errepar.MetadataManager.Process.Config;
 using Errepar.MetadataManager.Process.Models;
 using Errepar.MetadataManager.Process.Services;
+using ClosedXML.Excel;
 using Microsoft.SharePoint.Client;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+
+if (args.Any(argument => string.Equals(argument, "--convert-xlsx", StringComparison.OrdinalIgnoreCase)))
+{
+    var xlsxPath = GetOptionValue(args, "--xlsx") ?? FindFile("resultado.xlsx");
+    if (xlsxPath == null || !System.IO.File.Exists(xlsxPath))
+        throw new FileNotFoundException("No se encontró el XLSX. Usá --xlsx=RUTA para indicar el archivo.");
+
+    xlsxPath = Path.GetFullPath(xlsxPath);
+    var sheetName = GetOptionValue(args, "--sheet");
+    var filterColumn = GetOptionValue(args, "--filter-column");
+    var filterValue = GetOptionValue(args, "--filter-value");
+    if ((filterColumn == null) != (filterValue == null))
+        throw new ArgumentException("Usá juntos --filter-column y --filter-value.");
+
+    var defaultJsonPath = sheetName == null
+        ? Path.ChangeExtension(xlsxPath, ".json")
+        : Path.Combine(
+            Path.GetDirectoryName(xlsxPath)!,
+            $"{Path.GetFileNameWithoutExtension(xlsxPath)}-{MakeSafeFileName(sheetName)}{(filterValue == null ? string.Empty : $"-{MakeSafeFileName(filterValue)}")}.json");
+    var jsonPath = GetOptionValue(args, "--json") ?? defaultJsonPath;
+    var json = GenerateJsonFromExcel(xlsxPath, sheetName, filterColumn, filterValue);
+    await System.IO.File.WriteAllTextAsync(jsonPath, json);
+    Console.WriteLine($"JSON generado: {Path.GetFullPath(jsonPath)}");
+    return;
+}
 
 var environment = EnvironmentConfig.ResolveFromArgs(args);
 var sharePoint = environment.SharePoint;
@@ -101,13 +128,124 @@ foreach (var entry in document.RootElement.EnumerateArray())
 }
 
 
-string? FindDataFile()
+static string? GetOptionValue(string[] arguments, string optionName)
+{
+    var prefix = optionName + "=";
+    var argument = arguments.FirstOrDefault(value => value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+    return argument == null ? null : argument[prefix.Length..];
+}
+
+static string GenerateJsonFromExcel(
+    string xlsxPath,
+    string? sheetName = null,
+    string? filterColumn = null,
+    string? filterValue = null)
+{
+    using var xlsxStream = new FileStream(
+        xlsxPath,
+        FileMode.Open,
+        FileAccess.Read,
+        FileShare.ReadWrite | FileShare.Delete);
+    using var workbook = new XLWorkbook(xlsxStream);
+    var worksheet = sheetName == null
+        ? workbook.Worksheets.FirstOrDefault()
+        : workbook.Worksheets.FirstOrDefault(
+            sheet => string.Equals(sheet.Name, sheetName, StringComparison.OrdinalIgnoreCase));
+    if (worksheet == null)
+        throw new InvalidDataException(
+            sheetName == null
+                ? "El archivo XLSX no contiene hojas."
+                : $"No se encontró la hoja '{sheetName}'. Hojas disponibles: {string.Join(", ", workbook.Worksheets.Select(sheet => sheet.Name))}.");
+
+    var firstRow = worksheet.FirstRowUsed()?.RowNumber()
+        ?? throw new InvalidDataException("La primera hoja del XLSX está vacía.");
+    var lastRow = worksheet.LastRowUsed()!.RowNumber();
+    var firstColumn = worksheet.FirstColumnUsed()!.ColumnNumber();
+    var lastColumn = worksheet.LastColumnUsed()!.ColumnNumber();
+
+    var headers = Enumerable.Range(firstColumn, lastColumn - firstColumn + 1)
+        .Select(column => worksheet.Cell(firstRow, column).GetString().Trim())
+        .ToArray();
+
+    var filterColumnIndex = -1;
+    if (filterColumn != null)
+    {
+        filterColumnIndex = Array.FindIndex(
+            headers,
+            header => string.Equals(header, filterColumn, StringComparison.OrdinalIgnoreCase));
+        if (filterColumnIndex < 0)
+            throw new InvalidDataException(
+                $"No se encontró la columna '{filterColumn}' en la hoja '{worksheet.Name}'. Encabezados: {string.Join(" | ", headers)}.");
+    }
+
+    var emptyHeaderIndex = Array.FindIndex(headers, string.IsNullOrWhiteSpace);
+    if (emptyHeaderIndex >= 0)
+        throw new InvalidDataException($"El encabezado de la columna {firstColumn + emptyHeaderIndex} está vacío.");
+
+    var duplicateHeader = headers
+        .GroupBy(header => header, StringComparer.OrdinalIgnoreCase)
+        .FirstOrDefault(group => group.Count() > 1);
+    if (duplicateHeader != null)
+        throw new InvalidDataException($"El encabezado '{duplicateHeader.Key}' está repetido.");
+
+    var records = new List<Dictionary<string, object?>>();
+    for (var row = firstRow + 1; row <= lastRow; row++)
+    {
+        var cells = Enumerable.Range(firstColumn, headers.Length)
+            .Select(column => worksheet.Cell(row, column))
+            .ToArray();
+        if (cells.All(cell => cell.IsEmpty()))
+            continue;
+
+        if (filterColumnIndex >= 0
+            && !cells[filterColumnIndex].GetString().Trim().StartsWith(filterValue!, StringComparison.OrdinalIgnoreCase))
+            continue;
+
+        var record = new Dictionary<string, object?>(StringComparer.Ordinal);
+        for (var index = 0; index < headers.Length; index++)
+            record[headers[index]] = GetJsonCellValue(cells[index]);
+
+        records.Add(record);
+    }
+
+    return JsonSerializer.Serialize(records, new JsonSerializerOptions
+    {
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    });
+}
+
+static string MakeSafeFileName(string value)
+{
+    var invalidCharacters = Path.GetInvalidFileNameChars();
+    return string.Join("_", value.Split(invalidCharacters, StringSplitOptions.RemoveEmptyEntries));
+}
+
+static object? GetJsonCellValue(IXLCell cell)
+{
+    if (cell.IsEmpty())
+        return null;
+
+    return cell.DataType switch
+    {
+        XLDataType.Boolean => cell.GetBoolean(),
+        XLDataType.Number => cell.GetDouble(),
+        XLDataType.DateTime => cell.GetDateTime(),
+        XLDataType.TimeSpan => cell.GetTimeSpan(),
+        XLDataType.Error => cell.GetError().ToString(),
+        _ => cell.GetString()
+    };
+}
+
+static string? FindDataFile() => FindFile("data.json");
+
+static string? FindFile(string fileName)
 {
     foreach (var startDirectory in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
     {
         for (var directory = new DirectoryInfo(startDirectory); directory != null; directory = directory.Parent)
         {
-            var candidate = Path.Combine(directory.FullName, "data.json");
+            var candidate = Path.Combine(directory.FullName, fileName);
             if (System.IO.File.Exists(candidate))
                 return candidate;
         }
