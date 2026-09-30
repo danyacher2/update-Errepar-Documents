@@ -27,8 +27,15 @@ if (document.RootElement.ValueKind != JsonValueKind.Array)
 
 var lists = LoadSharePointLibraries(context);
 context.ExecuteQuery();
-var http= new HttpClient();
-var cambios = new ProcesarCambios(http, context, sharePoint.SiteUrl, new LogsManager(http, sharePoint.SiteUrl, "update-errepar-document"), new SearchService(context));
+var http = new HttpClient();
+var solrManager = new SolrManager(http, environment.Solr, environment.Milvus);
+var procesarEnShpSolrMilvus = new[] { "Solr" };
+var cambios = new ProcesarCambios(
+    http,
+    context,
+    sharePoint.SiteUrl,
+    new LogsManager(http, sharePoint.SiteUrl, "update-errepar-document"),
+    new SearchService(context));
 
 
 foreach (var entry in document.RootElement.EnumerateArray())
@@ -48,10 +55,44 @@ foreach (var entry in document.RootElement.EnumerateArray())
             continue;
         }
         Console.WriteLine($"GUID {guid} | Título: {item["Title"]}");
-        var actualizado = cambios.AgregarIndice(item, "57adaa13-b243-4d51-8d41-65062d30bd75", "Tratados con Jerarquía Constitucional");
-        Console.WriteLine(actualizado
-            ? $"GUID {guid}: índice guardado en SharePoint"
-            : $"GUID {guid}: sin cambios (índice existente o GUID de término vacío)");
+        // var actualizado = cambios.AgregarIndice(item, "4e4b1d54-ac85-473d-a88b-8ccd867af570", "Compraventa");
+        // Console.WriteLine(actualizado
+        //     ? $"GUID {guid}: índice guardado en SharePoint"
+        //     : $"GUID {guid}: sin cambios (índice existente o GUID de término vacío)");
+
+        if (procesarEnShpSolrMilvus.Contains("Solr", StringComparer.OrdinalIgnoreCase))
+        {
+            context.Load(
+                item,
+                currentItem => currentItem.ContentType,
+                currentItem => currentItem.ParentList,
+                currentItem => currentItem.ParentList.Fields);
+            context.ExecuteQuery();
+
+            var itemFormateado = await solrManager.GetItemFormatSync(context, item);
+            var payloadSolr = Newtonsoft.Json.JsonConvert.SerializeObject(new[] { itemFormateado });
+            var resultadoSolr = await solrManager.EnviarASolr(payloadSolr, item.Id);
+
+            Console.WriteLine(resultadoSolr.ok
+                ? $"GUID {guid}: documento actualizado en Solr"
+                : $"GUID {guid}: error al actualizar Solr: {resultadoSolr.msg}");
+
+            // bool incluirMilvus = procesarEnShpSolrMilvus.Contains("Milvus", StringComparer.OrdinalIgnoreCase);
+            // if (incluirMilvus)
+            // {
+            //     var payloadMilvus = Newtonsoft.Json.JsonConvert.SerializeObject(itemFormateado);
+            //     var resultadoMilvus = await MilvusManager.EnviarAMilvus(
+            //         http,
+            //         payloadMilvus,
+            //         item.Id,
+            //         environment.Milvus,
+            //         false);
+
+            //     Console.WriteLine(resultadoMilvus.ok
+            //         ? $"GUID {guid}: documento actualizado en Milvus"
+            //         : $"GUID {guid}: error al actualizar Milvus: {resultadoMilvus.msg}");
+            // }
+        }
     }
     catch (Exception exception)
     {
