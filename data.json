@@ -1,5 +1,21 @@
 [
-    { "id": "74f505b3-ed8c-4abd-b46b-50faf29eccac" },
-    { "id": "d8782a14-e587-4c5c-9aeb-d2da194b3845" },
-    { "id": "b05491dc-08b5-41b6-84b3-3d99701fb381" }
+    {
+        "indice": "errepar",
+        "permalink": "blanqueo-de-personal-per-nuevas-guias-del-libro-de-sueldos-digital-20260716180700216",
+        "titulo": "Blanqueo de personal (PER): nuevas guías del Libro de sueldos digital",
+        "tipoContenido": "Doctrina",
+        "url": "https://documento.errepar.com/doctrina/blanqueo-de-personal-per-nuevas-guias-del-libro-de-sueldos-digital-20260716180700216",
+        "sinBreadcrumb": "SI",
+        "pathRoto": "31db3e84-509d-4d3f-a523-7f4292d6b6ef:254844f8-0545-4f1b-a660-978ee5d88e52:1350b99f-a052-4f85-a2a0-4c1652bd9ad5:dc722bcd-8fab-4f65-b084-e204d84cee21:d7238e60-921e-499c-9435-9090870714cf",
+        "guidMuerto": "1350b99f-a052-4f85-a2a0-4c1652bd9ad5",
+        "posicionEnElPath": "3 de 5",
+        "diagnostico": "INEXISTENTE",
+        "carpetaPadreValida": "Índice de contenidos > Laboral y Previsional > Doctrinas y Prácticas",
+        "urlCarpetaPadre": "https://indicedecontenidos.errepar.com?id=254844f8-0545-4f1b-a660-978ee5d88e52",
+        "rutaSegunDocumento": "Reforma Laboral",
+        "eolShpIndiceContenidosEOL": "Reforma Laboral",
+        "eolShpID": 172848,
+        "id": "083b1789-7a9d-4467-a0a2-bc9d290d638b",
+        "eolShpIndiceContenidosGUID": "31db3e84-509d-4d3f-a523-7f4292d6b6ef:254844f8-0545-4f1b-a660-978ee5d88e52:1350b99f-a052-4f85-a2a0-4c1652bd9ad5:dc722bcd-8fab-4f65-b084-e204d84cee21:d7238e60-921e-499c-9435-9090870714cf"
+    } 
 ]

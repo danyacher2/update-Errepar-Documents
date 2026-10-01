@@ -15,23 +15,23 @@ using Newtonsoft.Json;
 using Errepar.MetadataManager.Process.Config;
 
 namespace Errepar.MetadataManager.Process.Services
-    {
+{
     // Esqueleto de cliente para Solr. Ajusta URL y esquema de campos según tu core/index.
     public class SolrManager
-        {
+    {
         private readonly HttpClient _http;
         private readonly SolrSettings _solrSettings;
         private readonly MilvusSettings _milvusSettings;
 
         public SolrManager(HttpClient httpClient, SolrSettings solrSettings, MilvusSettings milvusSettings)
-            {
+        {
             _http = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _solrSettings = solrSettings ?? throw new ArgumentNullException(nameof(solrSettings));
             _milvusSettings = milvusSettings ?? throw new ArgumentNullException(nameof(milvusSettings));
-            }
+        }
 
         public async Task<(bool ok, string msg)> AtomicUpdateSolrMultiple(string guid, Dictionary<string, object> campos, int idElemento)
-            {
+        {
             const int maxIntentos = 3;
             const int delayEntreIntentos = 3000; // 2 segundos
 
@@ -41,7 +41,7 @@ namespace Errepar.MetadataManager.Process.Services
                 string valorFormateado;
 
                 switch (kv.Value)
-                    {
+                {
                     case bool b:
                         valorFormateado = b.ToString().ToLowerInvariant();
                         break;
@@ -57,7 +57,7 @@ namespace Errepar.MetadataManager.Process.Services
                     default:
                         valorFormateado = $"\"{kv.Value}\"";
                         break;
-                    }
+                }
 
                 return $@"""{kv.Key}"": {{ ""set"": {valorFormateado} }}";
             }));
@@ -120,7 +120,7 @@ namespace Errepar.MetadataManager.Process.Services
         }
 
         public async Task<(bool ok, string msg)> EnviarASolr(string json, int id)
-            {
+        {
             string user = "Basic " + Base64Encode($"{_solrSettings.User}:{_solrSettings.Password}");
             string urlSolr = _solrSettings.UpdateUrl;
 
@@ -160,15 +160,15 @@ namespace Errepar.MetadataManager.Process.Services
         }
 
         public static string Base64Encode(string plainText)
-            {
+        {
             var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
             return System.Convert.ToBase64String(plainTextBytes);
-            }
+        }
 
         public async void EliminarDeSolr(string eolShpTimeStamp)
         {
             //string jsonData = "{\"delete\":{\"query\":\"eolShpTimeStamp:\"" + eolShpTimeStamp + "\"\"}}";
-           // string jsonData = "{'delete':{'eolShpTimeStamp:" + eolShpTimeStamp + "'}}";
+            // string jsonData = "{'delete':{'eolShpTimeStamp:" + eolShpTimeStamp + "'}}";
 
             //string jsonData = @"{
             //      ""delete"": {
@@ -189,7 +189,7 @@ namespace Errepar.MetadataManager.Process.Services
             };
 
             string json = JsonConvert.SerializeObject(payload);
-           // string json = JsonConvert.SerializeObject(jsonData);
+            // string json = JsonConvert.SerializeObject(jsonData);
 
             string user = "Basic " + Base64Encode($"{_solrSettings.User}:{_solrSettings.Password}");
             string urlSolr = _solrSettings.UpdateUrl;
@@ -279,7 +279,7 @@ namespace Errepar.MetadataManager.Process.Services
 
 
         public async Task<IDictionary<string, object>> GetItemFormatSync(ClientContext ctx, ListItem item)
-            {
+        {
             IDictionary<string, object> col = new Dictionary<string, object>();
             col["id"] = item["GUID"];
             col["eolShpTipoContenido"] = item.ContentType.Name;
@@ -287,57 +287,90 @@ namespace Errepar.MetadataManager.Process.Services
             col["eolShpTitle"] = item["Title"];
 
             foreach (Field field in item.ParentList.Fields)
-                {
+            {
                 //if((field.InternalName.StartsWith("eolShp") || field.InternalName.StartsWith("Sumario_x0020_")) && !field.InternalName.Equals("eolShpMarcasCD") && !field.InternalName.Equals("eolShpIndiceContenidosIUS") && !field.InternalName.Equals("eolShpIndiceContenidosOculto") && item[field.InternalName] != null) 
-                if ((field.InternalName.StartsWith("eolShp") || field.InternalName.StartsWith("Sumario_x0020_")))
-                    {
+                if (field.InternalName.StartsWith("eolShp") || field.InternalName.StartsWith("Sumario_x0020_"))
+                {
                     if (field.TypeDisplayName.ToLower().Equals("metadatos administrados"))
-                        {
+                    {
                         if (field.TypeAsString.Equals("TaxonomyFieldTypeMulti"))
-                            {
+                        {
                             List<string> values = new List<string>();
                             List<string> valuesGUID = new List<string>();
-                            TaxonomyFieldValueCollection _taxonomyValueColl = (item[field.InternalName] as TaxonomyFieldValueCollection);
-                            if(_taxonomyValueColl!=null)
-                            foreach (var _taxonomyValue in _taxonomyValueColl)
-                                {
+                            var rawTaxonomyValue = item[field.InternalName];
+                            var taxonomyTerms = new List<(string Label, string TermGuid)>();
 
-                                values.Add(_taxonomyValue.Label);
+                            if (rawTaxonomyValue is TaxonomyFieldValueCollection taxonomyValueCollection2)
+                            {
+                                foreach (var value in taxonomyValueCollection2)
+                                    taxonomyTerms.Add((value.Label, value.TermGuid));
+                            }
+                            else if (rawTaxonomyValue is string serializedTaxonomyValue)
+                            {
+                                var taxonomyField = ctx.CastTo<TaxonomyField>(field);
+                                var taxonomyValueCollection = new TaxonomyFieldValueCollection(
+                                    ctx,
+                                    serializedTaxonomyValue,
+                                    taxonomyField);
+                                foreach (var value in taxonomyValueCollection)
+                                    taxonomyTerms.Add((value.Label, value.TermGuid));
+                            }
+                            else if (rawTaxonomyValue != null)
+                            {
+                                var childItems = Newtonsoft.Json.Linq.JObject.FromObject(rawTaxonomyValue)["_Child_Items_"]
+                                    as Newtonsoft.Json.Linq.JArray;
+                                if (childItems != null)
+                                {
+                                    foreach (var childItem in childItems)
+                                    {
+                                        var label = (string?)childItem["Label"];
+                                        var termGuid = (string?)childItem["TermGuid"];
+                                        if (label != null && termGuid != null)
+                                            taxonomyTerms.Add((label, termGuid));
+                                    }
+                                }
+                            }
+
+                            foreach (var taxonomyTerm in taxonomyTerms)
+                            {
+                                values.Add(taxonomyTerm.Label);
 
                                 if (field.InternalName.Equals("eolShpIndiceContenidosEOL"))
-                                    {
-                                    string guid = await getFullPathIds(_taxonomyValue.TermGuid, "Índice de Contenidos");
+                                {
+                                    string guid = await getFullPathIds(taxonomyTerm.TermGuid, "Índice de Contenidos");
                                     valuesGUID.Add(guid);
-                                    }
-                                else if (field.InternalName.Equals("eolShpIndiceContenidosIUS"))
-                                    {
-                                    string guid = await getFullPathIds(_taxonomyValue.TermGuid, "Índice de Contenidos IUS");
-                                    valuesGUID.Add(guid);
-                                    }
-
                                 }
+                                else if (field.InternalName.Equals("eolShpIndiceContenidosIUS"))
+                                {
+                                    string guid = await getFullPathIds(taxonomyTerm.TermGuid, "Índice de Contenidos IUS");
+                                    valuesGUID.Add(guid);
+                                }
+
+                            }
 
                             if (field.InternalName.Equals("eolShpIndiceContenidosEOL"))
-                                {
+                            {
                                 col["eolShpIndiceContenidosGUID"] = valuesGUID.ToArray();
-                                }
+                                col["eolShpIndiceContenidosGUID_entries"] = valuesGUID.ToArray();
+                            }
                             else if (field.InternalName.Equals("eolShpIndiceContenidosIUS"))
-                                {
+                            {
                                 col["eolShpIndiceContenidosIUSGUID"] = valuesGUID.ToArray();
-                                }
+                                col["eolShpIndiceContenidosIUSGUID_entries"] = valuesGUID.ToArray();
+                            }
 
                             if (field.InternalName.Equals("eolShpOrganismo"))
                                 col[field.InternalName] = NormalizeOrganismo(values.ToArray());
                             else
                                 col[field.InternalName] = values.ToArray();
-                            }
+                        }
                         else
-                            {
+                        {
                             TaxonomyFieldValue _taxonomyValue = item[field.InternalName] as TaxonomyFieldValue;
                             if (_taxonomyValue != null)
                                 col[field.InternalName] = _taxonomyValue.Label;
-                            }
                         }
+                    }
                     else if (field.TypeDisplayName.ToLower().Equals("búsqueda"))
                     {
                         if (field.TypeAsString.Equals("LookupMulti"))
@@ -352,6 +385,8 @@ namespace Errepar.MetadataManager.Process.Services
                                         values.Add(_lookupValue.LookupValue);
                                 }
                             }
+                            if (values.Count > 0)
+                                col[field.InternalName] = values.ToArray();
                         }
                         else
                         {
@@ -390,16 +425,20 @@ namespace Errepar.MetadataManager.Process.Services
                     }
                     else
                     {
+                        var fieldValue = item[field.InternalName];
+                        if (fieldValue is FieldUrlValue urlValue)
+                            fieldValue = urlValue.Url;
+
                         if (field.InternalName.StartsWith("Sumario_x0020_"))
                         {
-                            col[field.InternalName.Replace("Sumario_x0020_", "eolShpResumen")] = item[field.InternalName];
+                            col[field.InternalName.Replace("Sumario_x0020_", "eolShpResumen")] = fieldValue;
                         }
                         else
-                            col[field.InternalName] = item[field.InternalName];
+                            col[field.InternalName] = fieldValue;
                     }
 
-                    }
                 }
+            }
 
             col["eolShpID"] = item.Id;
             //col["idd"] = "b05491dc-08b5-41b6-84b3-3d99701fb381";
@@ -421,7 +460,7 @@ namespace Errepar.MetadataManager.Process.Services
             }
 
             return col;
-            }
+        }
         //public async Task IndexAsync(IEnumerable<object> documents, CancellationToken cancellationToken = default)
         //{
         //    // POST a /update?commit=true con JSON de documentos
@@ -443,38 +482,38 @@ namespace Errepar.MetadataManager.Process.Services
         //    return resp;
         //}
         private static string[] NormalizeOrganismo(string[] values)
-            {
+        {
             if (values == null || values.Length == 0)
                 return new string[0];
 
             var list = new List<string>();
 
             foreach (var raw in values)
-                {
+            {
                 if (string.IsNullOrWhiteSpace(raw))
                     continue;
 
                 string last = raw;
                 int idx = raw.LastIndexOf(':');
                 if (idx >= 0 && idx < raw.Length - 1)
-                    {
+                {
                     last = raw.Substring(idx + 1);
-                    }
+                }
 
                 string cleaned = last.Trim();
                 if (!string.IsNullOrWhiteSpace(cleaned))
-                    {
+                {
                     list.Add(cleaned);
-                    }
                 }
-
-            return list.ToArray();
             }
 
+            return list.ToArray();
+        }
+
         public static async Task<string> getFullPathIds(string TermId, String TermSet)
-            {
+        {
             try
-                {
+            {
                 HttpClient newClient = new HttpClient();
                 var urlRequest = string.Format("https://getfullpathids.azurewebsites.net/api/calculateFullPathIds?termId={0}&termset={1}", TermId, TermSet);
                 HttpRequestMessage newRequest = new HttpRequestMessage(HttpMethod.Get, urlRequest);
@@ -485,21 +524,21 @@ namespace Errepar.MetadataManager.Process.Services
                 //Console.WriteLine($"Contenido de la respuesta:\n{isValidMpn}");
                 return isValidMpn;
 
-                }
+            }
             catch (Exception ex)
-                {
+            {
                 Console.WriteLine(ex.ToString());
                 throw;
-                }
-            }
-
-        public static async Task<string> GetResponseBodyAsync(HttpResponseMessage response)
-            {
-            string responseBody = await response.Content.ReadAsStringAsync();
-            return responseBody;
             }
         }
 
-
-
+        public static async Task<string> GetResponseBodyAsync(HttpResponseMessage response)
+        {
+            string responseBody = await response.Content.ReadAsStringAsync();
+            return responseBody;
+        }
     }
+
+
+
+}

@@ -7,36 +7,36 @@ using Microsoft.SharePoint.Client;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
-// Modo independiente: convierte un archivo Excel a JSON y termina sin conectarse a SharePoint.
-if (args.Any(argument => string.Equals(argument, "--convert-xlsx", StringComparison.OrdinalIgnoreCase)))
-{
-    // Si no se especifica --xlsx=..., busca el archivo predeterminado en el directorio actual o sus superiores.
-    var xlsxPath = GetOptionValue(args, "--xlsx") ?? FindFile("resultado.xlsx");
-    if (xlsxPath == null || !System.IO.File.Exists(xlsxPath))
-        throw new FileNotFoundException("No se encontró el XLSX. Usá --xlsx=RUTA para indicar el archivo.");
+// // Modo independiente: convierte un archivo Excel a JSON y termina sin conectarse a SharePoint.
+// if (args.Any(argument => string.Equals(argument, "--convert-xlsx", StringComparison.OrdinalIgnoreCase)))
+// {
+//     // Si no se especifica --xlsx=..., busca el archivo predeterminado en el directorio actual o sus superiores.
+//     var xlsxPath = GetOptionValue(args, "--xlsx") ?? FindFile("resultado.xlsx");
+//     if (xlsxPath == null || !System.IO.File.Exists(xlsxPath))
+//         throw new FileNotFoundException("No se encontró el XLSX. Usá --xlsx=RUTA para indicar el archivo.");
 
-    xlsxPath = Path.GetFullPath(xlsxPath);
-    var sheetName = GetOptionValue(args, "--sheet");
-    var filterColumn = GetOptionValue(args, "--filter-column");
-    var filterValue = GetOptionValue(args, "--filter-value");
-    if ((filterColumn == null) != (filterValue == null))
-        throw new ArgumentException("Usá juntos --filter-column y --filter-value.");
+//     xlsxPath = Path.GetFullPath(xlsxPath);
+//     var sheetName = GetOptionValue(args, "--sheet");
+//     var filterColumn = GetOptionValue(args, "--filter-column");
+//     var filterValue = GetOptionValue(args, "--filter-value");
+//     if ((filterColumn == null) != (filterValue == null))
+//         throw new ArgumentException("Usá juntos --filter-column y --filter-value.");
 
-    // Por defecto guarda el JSON junto al Excel; si se indicó hoja, incluye su nombre en el archivo.
-    var defaultJsonPath = sheetName == null
-        ? Path.ChangeExtension(xlsxPath, ".json")
-        : Path.Combine(
-            Path.GetDirectoryName(xlsxPath)!,
-            $"{Path.GetFileNameWithoutExtension(xlsxPath)}-{MakeSafeFileName(sheetName)}{(filterValue == null ? string.Empty : $"-{MakeSafeFileName(filterValue)}")}.json");
-    var jsonPath = GetOptionValue(args, "--json") ?? defaultJsonPath;
-    var json = GenerateJsonFromExcel(xlsxPath, sheetName, filterColumn, filterValue);
-    await System.IO.File.WriteAllTextAsync(jsonPath, json);
-    Console.WriteLine($"JSON generado: {Path.GetFullPath(jsonPath)}");
-    return;
-}
+//     // Por defecto guarda el JSON junto al Excel; si se indicó hoja, incluye su nombre en el archivo.
+//     var defaultJsonPath = sheetName == null
+//         ? Path.ChangeExtension(xlsxPath, ".json")
+//         : Path.Combine(
+//             Path.GetDirectoryName(xlsxPath)!,
+//             $"{Path.GetFileNameWithoutExtension(xlsxPath)}-{MakeSafeFileName(sheetName)}{(filterValue == null ? string.Empty : $"-{MakeSafeFileName(filterValue)}")}.json");
+//     var jsonPath = GetOptionValue(args, "--json") ?? defaultJsonPath;
+//     var json = GenerateJsonFromExcel(xlsxPath, sheetName, filterColumn, filterValue);
+//     await System.IO.File.WriteAllTextAsync(jsonPath, json);
+//     Console.WriteLine($"JSON generado: {Path.GetFullPath(jsonPath)}");
+//     return;
+// }
 
 // A partir de aquí comienza el proceso normal: configura el entorno y se autentica contra SharePoint.
-var environment = EnvironmentConfig.ResolveFromArgs(args);
+var environment = EnvironmentConfig.Prod;
 var sharePoint = environment.SharePoint;
 var authToken = await TokenProvider.GetSharePointTokenWithCertificateThumbprintAsync(
     sharePoint.TenantId,
@@ -64,7 +64,7 @@ context.ExecuteQuery();
 var http = new HttpClient();
 var solrManager = new SolrManager(http, environment.Solr, environment.Milvus);
 // Esta lista controla los destinos habilitados actualmente; en este caso solo se procesa Solr.
-var procesarEnShpSolrMilvus = new[] { "Solr" };
+var procesarEnShpSolrMilvus = new[] { "Solr", "Milvus" };
 var cambios = new ProcesarCambios(
     http,
     context,
@@ -91,6 +91,24 @@ foreach (var entry in document.RootElement.EnumerateArray())
             Console.WriteLine($"GUID {guid}: no encontrado");
             continue;
         }
+
+        Console.WriteLine($"Campos recibidos de SharePoint para el item {item.Id}:");
+        foreach (var fieldValue in item.FieldValues.OrderBy(field => field.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            string serializedValue;
+            try
+            {
+                serializedValue = Newtonsoft.Json.JsonConvert.SerializeObject(fieldValue.Value);
+            }
+            catch
+            {
+                serializedValue = fieldValue.Value?.ToString() ?? "<null>";
+            }
+
+            Console.WriteLine(
+                $"{fieldValue.Key} [{fieldValue.Value?.GetType().FullName ?? "null"}] = {serializedValue}");
+        }
+
         Console.WriteLine($"GUID {guid} | Título: {item["Title"]}");
         // Este bloque opcional agregaría un índice de SharePoint; está comentado y no se ejecuta.
         // var actualizado = cambios.AgregarIndice(item, "4e4b1d54-ac85-473d-a88b-8ccd867af570", "Compraventa");
@@ -101,23 +119,26 @@ foreach (var entry in document.RootElement.EnumerateArray())
         if (procesarEnShpSolrMilvus.Contains("Solr", StringComparer.OrdinalIgnoreCase))
         {
             // Carga los campos adicionales que necesita el formateador y consulta el elemento en SharePoint.
-            context.Load(
-                item,
-                currentItem => currentItem.ContentType,
-                currentItem => currentItem.ParentList,
-                currentItem => currentItem.ParentList.Fields);
-            context.ExecuteQuery();
+            // context.Load(
+            //     item,
+            //     currentItem => currentItem.ContentType,
+            //     currentItem => currentItem.ParentList,
+            //     currentItem => currentItem.ParentList.Fields);
+
+           
+            //context.ExecuteQuery();
 
             // Convierte el elemento al formato esperado por Solr y lo serializa como un array JSON.
             var itemFormateado = await solrManager.GetItemFormatSync(context, item);
             var payloadSolr = Newtonsoft.Json.JsonConvert.SerializeObject(new[] { itemFormateado });
+            
             var resultadoSolr = await solrManager.EnviarASolr(payloadSolr, item.Id);
 
             Console.WriteLine(resultadoSolr.ok
                 ? $"GUID {guid}: documento actualizado en Solr"
                 : $"GUID {guid}: error al actualizar Solr: {resultadoSolr.msg}");
 
-            // El envío a Milvus está preparado como ejemplo, pero permanece desactivado porque está comentado.
+            // //El envío a Milvus
             // bool incluirMilvus = procesarEnShpSolrMilvus.Contains("Milvus", StringComparer.OrdinalIgnoreCase);
             // if (incluirMilvus)
             // {
@@ -289,6 +310,7 @@ List<Microsoft.SharePoint.Client.List> LoadSharePointLibraries(ClientContext cli
     // Nombres de las bibliotecas de SharePoint en las que se buscarán los documentos.
     var libraryNames = new[]
     {
+        "Doctrina",
         "Jurisprudencia Adm",
         "Documento",
         "Agenda",
@@ -330,51 +352,77 @@ static ListItem? FindItem(
     return null;
 }
 
-static ListItem? GetItemByUniqueIdPagedScan(ClientContext context, Microsoft.SharePoint.Client.List list, Guid uniqueId)
+static ListItem GetItemByUniqueIdPagedScan(ClientContext ctx, List lista, Guid uniqueId)
 {
-    // Recorre la biblioteca en páginas de hasta 2000 elementos para evitar cargarla completa de una vez.
-    var targetGuid = uniqueId.ToString();
-    ListItemCollectionPosition? position = null;
+    // Fallback garantizado: pagina la lista SIN cláusula WHERE (ordenada por ID), comparando
+    // el GUID en memoria por cada batch. Se cargan solo Id+GUID durante el escaneo para no
+    // sobrecargar la consulta; una vez encontrado el match, se recarga el item completo
+    // (todos los campos) igual que hace GetItemByUniqueId.
+    // Una consulta paginada sin filtro no dispara el List View Threshold (el umbral solo
+    // aplica cuando SharePoint debe escanear+filtrar por un campo no indexado).
+    string targetGuid = uniqueId.ToString();
+    ListItemCollectionPosition position = null;
+    int totalEscaneados = 0;
+
+    string listaNombre;
+    try { listaNombre = lista.Title; }
+    catch { listaNombre = "(desconocida)"; }
 
     do
     {
         var query = new CamlQuery
         {
             ListItemCollectionPosition = position,
-            // Solicita ID y GUID, ordenados por ID, y habilita la búsqueda recursiva en carpetas.
             ViewXml = @"
-                <View Scope='RecursiveAll'>
-                    <Query>
-                        <OrderBy><FieldRef Name='ID' /></OrderBy>
-                    </Query>
-                    <ViewFields>
-                        <FieldRef Name='ID' /><FieldRef Name='GUID' />
-                    </ViewFields>
-                    <RowLimit>2000</RowLimit>
-                </View>"
+                        <View Scope='RecursiveAll'>
+                            <Query>
+                                <OrderBy><FieldRef Name='ID' /></OrderBy>
+                            </Query>
+                            <ViewFields>
+                                <FieldRef Name='ID' /><FieldRef Name='GUID' />
+                            </ViewFields>
+                            <RowLimit>2000</RowLimit>
+                        </View>"
         };
 
-        var items = list.GetItems(query);
-        context.Load(items, collection => collection.Include(item => item.Id, item => item["GUID"]), collection => collection.ListItemCollectionPosition);
-        context.ExecuteQuery();
+        var items = lista.GetItems(query);
+        ctx.Load(items, coll => coll.Include(i => i.Id, i => i["GUID"]), coll => coll.ListItemCollectionPosition);
+        ctx.ExecuteQuery();
 
-        foreach (var candidate in items)
+        totalEscaneados += items.Count;
+
+        foreach (var candidato in items)
         {
-            // SharePoint puede devolver el GUID con llaves; se quitan antes de comparar.
-            var itemGuid = candidate["GUID"]?.ToString()?.Trim('{', '}');
-            if (!string.Equals(itemGuid, targetGuid, StringComparison.OrdinalIgnoreCase))
-                continue;
+            var guidValue = candidato["GUID"]?.ToString()?.Trim('{', '}');
+            if (string.Equals(guidValue, targetGuid, StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine($"✔ Encontrado por escaneo paginado en '{listaNombre}' (ID {candidato.Id}) tras escanear {totalEscaneados} items.");
 
-            // Al encontrarlo, carga todas las propiedades del elemento antes de devolverlo.
-            context.Load(candidate);
-            context.ExecuteQuery();
-            return candidate;
+                var item = candidato;
+
+                ctx.Load(item);
+                ctx.Load(
+                    item,
+                    i => i.ContentType,
+                    i => i.ParentList,
+                    i => i.ParentList.Fields);
+                ctx.ExecuteQuery();
+
+                if (item.ParentList.Fields.Any(field =>
+                    string.Equals(field.InternalName, "eolShpIndiceContenidosEOL", StringComparison.Ordinal)))
+                {
+                    ctx.Load(item, currentItem => currentItem["eolShpIndiceContenidosEOL"]);
+                    ctx.ExecuteQuery();
+                }
+
+                return item;
+            }
         }
 
-        // Si SharePoint indicó otra página, la consulta siguiente continúa desde esa posición.
         position = items.ListItemCollectionPosition;
     }
     while (position != null);
 
+    Console.WriteLine($"✘ No se encontró {uniqueId} en '{listaNombre}' tras escanear {totalEscaneados} items.");
     return null;
 }

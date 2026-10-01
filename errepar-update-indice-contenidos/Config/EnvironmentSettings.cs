@@ -81,17 +81,39 @@ namespace Errepar.MetadataManager.Process.Config
         public static readonly EnvironmentSettings Prod = new()
         {
             Ambiente = Ambiente.PROD,
-            SharePoint = new SharePointSettings
+           SharePoint = new SharePointSettings
             {
-            
+                // Fuente: DOCUMENTACION_METADATA_MANAGER.md ("Configuración de Ambientes" > "Producción")
+                SiteUrl = "https://erreparsa.sharepoint.com/sites/Errepar",
+                TenantId = "00f26ad1-2073-4746-a79f-c83061db35c0",
+                ClientId = "8688eed4-7464-4288-9820-34849fd19296", // erreparDesarrollo (aparecía comentado en Program.cs)
+                // No se encontró un thumbprint de certificado de PROD en el código ni en la documentación.
+                CertificateThumbprint = "7BA783C08AEA10B3C35979E64388A404D4292ECA"
             },
             Solr = new SolrSettings
             {
-                
+                // Fuente: DOCUMENTACION_METADATA_MANAGER.md.
+                // NOTA: en SolrManager.EliminarDeSolr aparecía además el host alternativo
+                // "https://solr-prod-hcs.errepar.com/solr/prodActivos02/update?commit=true"; confirmar cuál está vigente.
+                UpdateUrl = "https://solr.errepar.com/solr/prodActivos02/update?commit=true",
+                //User = "admin",
+                // NOTA: se encontraron dos passwords distintas para "admin" en el código
+                // (SolrManager.EnviarASolr: "6s2HUXFb8la", SolrManager.EliminarDeSolr: "T0m4t1t02023*").
+                // Se usa la documentada en DOCUMENTACION_METADATA_MANAGER.md; confirmar cuál es la vigente.
+                //Password = "6s2HUXFb8la"
+            
+                User = "sa-sharepoint-prod",
+                Password = "37jtgn%ds5RGJz$9pX7H7#mot"
             },
             Milvus = new MilvusSettings
             {
-
+                // Encontrado comentado en MilvusManager.cs
+                AuthEndpoint = "https://accounts.errepar.com/eauth/auth/job/getJobCredentialsEAuth",
+                // No se encontró una API key distinta para PROD.
+                ApiKey = "e5169fe4-1c39-4356-b148-1f210cc2431b",
+                LoadAssetEndpoint = "https://api.errepar.com/syserrepar/embeddeddocumentai/loadAssetToMilvus",
+                DeleteAssetEndpoint = "https://api.errepar.com/syserrepar/embeddeddocumentai/deleteAssetMilvus",
+                SearchByTimestampEndpoint = "https://api.errepar.com/syserrepar/embeddeddocumentai/searchByTimestamp"
             }
         };
 
