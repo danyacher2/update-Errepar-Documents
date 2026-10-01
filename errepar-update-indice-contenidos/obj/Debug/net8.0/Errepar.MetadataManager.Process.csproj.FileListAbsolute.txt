@@ -52,7 +52,6 @@ C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\bin\Debu
 C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\bin\Debug\net8.0\Microsoft.SharePoint.Client.Taxonomy.dll
 C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\bin\Debug\net8.0\Microsoft.SharePoint.Client.UserProfiles.dll
 C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\bin\Debug\net8.0\Microsoft.SharePoint.Client.WorkflowServices.dll
-C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\bin\Debug\net8.0\Microsoft.SharePoint.Client.dll
 C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\bin\Debug\net8.0\Newtonsoft.Json.dll
 C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\obj\Debug\net8.0\Errepar.MetadataManager.Process.csproj.AssemblyReference.cache
 C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\obj\Debug\net8.0\Errepar.MetadataManager.Process.GeneratedMSBuildEditorConfig.editorconfig
@@ -66,3 +65,16 @@ C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\obj\Debu
 C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\obj\Debug\net8.0\Errepar.MetadataManager.Process.pdb
 C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\obj\Debug\net8.0\Errepar.MetadataManager.Process.genruntimeconfig.cache
 C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\obj\Debug\net8.0\ref\Errepar.MetadataManager.Process.dll
+C:\Users\danya\AppData\Local\Temp\ErreparMetadataManagerBuild\Debug\net8.0\Errepar.MetadataManager.Process.deps.json
+C:\Users\danya\AppData\Local\Temp\ErreparMetadataManagerBuild\Debug\net8.0\Errepar.MetadataManager.Process.runtimeconfig.json
+C:\Users\danya\AppData\Local\Temp\ErreparMetadataManagerBuild\Debug\net8.0\Errepar.MetadataManager.Process.dll
+C:\Users\danya\AppData\Local\Temp\ErreparMetadataManagerBuild\Debug\net8.0\Errepar.MetadataManager.Process.pdb
+C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\bin\Debug\net8.0\ClosedXML.dll
+C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\bin\Debug\net8.0\ClosedXML.Parser.dll
+C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\bin\Debug\net8.0\DocumentFormat.OpenXml.dll
+C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\bin\Debug\net8.0\DocumentFormat.OpenXml.Framework.dll
+C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\bin\Debug\net8.0\ExcelNumberFormat.dll
+C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\bin\Debug\net8.0\Microsoft.SharePoint.Client.dll
+C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\bin\Debug\net8.0\RBush.dll
+C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\bin\Debug\net8.0\SixLabors.Fonts.dll
+C:\desarrollo\update-Errepar-Documents\errepar-update-indice-contenidos\bin\Debug\net8.0\System.IO.Packaging.dll
