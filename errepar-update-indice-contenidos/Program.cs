@@ -36,7 +36,13 @@ using System.Text.Json;
 // }
 
 // A partir de aquí comienza el proceso normal: configura el entorno y se autentica contra SharePoint.
-var environment = EnvironmentConfig.Prod;
+using var runLog = new ExecutionTextLog();
+Console.WriteLine($"Log de ejecución: {runLog.FilePath}");
+var runHadErrors = false;
+var processedIds = 0;
+try
+{
+var environment = EnvironmentConfig.Uat;
 var sharePoint = environment.SharePoint;
 var authToken = await TokenProvider.GetSharePointTokenWithCertificateThumbprintAsync(
     sharePoint.TenantId,
@@ -79,19 +85,30 @@ foreach (var entry in document.RootElement.EnumerateArray())
     if (!entry.TryGetProperty("id", out var idElement) || !Guid.TryParse(idElement.GetString(), out var guid))
     {
         Console.WriteLine($"ID inválido en data.json: {entry}");
+        runHadErrors = true;
+        runLog.Write($"ERROR | ID inválido en data.json: {entry.GetRawText()}");
         continue;
     }
 
+    processedIds++;
+    runLog.Write($"INICIO ID | {guid}");
+    using var itemLog = new ExecutionTextLog(guid.ToString());
+    runLog.Write($"LOG ID | {itemLog.FilePath}");
     try
     {
         // Busca el documento por su GUID en las bibliotecas configuradas.
+        itemLog.Write("PASO | Buscando el documento en las bibliotecas de SharePoint.");
         var item = FindItem(lists, guid, context);
         if (item == null)
         {
             Console.WriteLine($"GUID {guid}: no encontrado");
+            runHadErrors = true;
+            runLog.Write($"ERROR ID | {guid} | No encontrado en las bibliotecas configuradas.");
+            itemLog.Write("RESULTADO FINAL | ERROR | No se encontró el documento en las bibliotecas configuradas.");
             continue;
         }
 
+        itemLog.Write($"PASO | Documento encontrado en SharePoint. Item ID: {item.Id}.");
         Console.WriteLine($"Campos recibidos de SharePoint para el item {item.Id}:");
         foreach (var fieldValue in item.FieldValues.OrderBy(field => field.Key, StringComparer.OrdinalIgnoreCase))
         {
@@ -110,6 +127,7 @@ foreach (var entry in document.RootElement.EnumerateArray())
         }
 
         Console.WriteLine($"GUID {guid} | Título: {item["Title"]}");
+    itemLog.Write($"DATO | Título: {item["Title"]}");
         // Este bloque opcional agregaría un índice de SharePoint; está comentado y no se ejecuta.
         // var actualizado = cambios.AgregarIndice(item, "4e4b1d54-ac85-473d-a88b-8ccd867af570", "Compraventa");
         // Console.WriteLine(actualizado
@@ -118,6 +136,7 @@ foreach (var entry in document.RootElement.EnumerateArray())
 
         if (procesarEnShpSolrMilvus.Contains("Solr", StringComparer.OrdinalIgnoreCase))
         {
+            itemLog.Write("PASO | Obteniendo los datos del documento y preparando el formato para Solr.");
             // Carga los campos adicionales que necesita el formateador y consulta el elemento en SharePoint.
             // context.Load(
             //     item,
@@ -132,11 +151,23 @@ foreach (var entry in document.RootElement.EnumerateArray())
             var itemFormateado = await solrManager.GetItemFormatSync(context, item);
             var payloadSolr = Newtonsoft.Json.JsonConvert.SerializeObject(new[] { itemFormateado });
             
+            itemLog.Write("PASO | Enviando el documento a Solr.");
             var resultadoSolr = await solrManager.EnviarASolr(payloadSolr, item.Id);
 
             Console.WriteLine(resultadoSolr.ok
                 ? $"GUID {guid}: documento actualizado en Solr"
                 : $"GUID {guid}: error al actualizar Solr: {resultadoSolr.msg}");
+            if (resultadoSolr.ok)
+            {
+                runLog.Write($"OK ID | {guid} | Documento actualizado en Solr.");
+                itemLog.Write("RESULTADO FINAL | CORRECTO | Documento actualizado en Solr.");
+            }
+            else
+            {
+                runHadErrors = true;
+                runLog.Write($"ERROR ID | {guid} | Error al actualizar Solr: {resultadoSolr.msg}");
+                itemLog.Write($"RESULTADO FINAL | ERROR | Error al actualizar Solr: {resultadoSolr.msg}");
+            }
 
             // //El envío a Milvus
             // bool incluirMilvus = procesarEnShpSolrMilvus.Contains("Milvus", StringComparer.OrdinalIgnoreCase);
@@ -160,7 +191,20 @@ foreach (var entry in document.RootElement.EnumerateArray())
     {
         // Registra el error de este GUID y continúa con el siguiente elemento del archivo.
         Console.WriteLine($"GUID {guid}: error durante la búsqueda: {exception.Message}");
+        runHadErrors = true;
+        runLog.Write($"ERROR ID | {guid}{Environment.NewLine}{exception}");
+        itemLog.Write($"ERROR DETALLADO{Environment.NewLine}{exception}");
+        itemLog.Write("RESULTADO FINAL | ERROR");
     }
+}
+
+runLog.Write($"RESULTADO | {(runHadErrors ? "ERROR" : "CORRECTO")} | IDs válidos procesados: {processedIds}");
+}
+catch (Exception exception)
+{
+    runLog.Write($"ERROR FATAL | {exception}");
+    runLog.Write("RESULTADO | ERROR FATAL");
+    throw;
 }
 
 
